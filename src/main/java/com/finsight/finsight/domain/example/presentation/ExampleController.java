@@ -5,6 +5,8 @@ import com.finsight.finsight.domain.example.application.dto.response.ExampleResp
 import com.finsight.finsight.domain.example.domain.service.ExampleService;
 import com.finsight.finsight.global.response.DataResponse;
 import com.finsight.finsight.global.response.DefaultIdResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,14 @@ public class ExampleController {
 
     private final ExampleService exampleService;
 
+    @Operation(
+            summary = "예시 이름 저장 API By 김민규 (개발 완료)",
+            description = "이름을 받아와서 DB에 저장합니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "실패")
+    })
     @PostMapping
     public ResponseEntity<DataResponse<DefaultIdResponse>> save(@RequestBody ExampleRequest request) {
         return ResponseEntity.ok(
@@ -26,6 +36,14 @@ public class ExampleController {
         );
     }
 
+    @Operation(
+            summary = "예시 이름 조회 API By 김민규 (개발 완료)",
+            description = "id값에 해당하는 이름을 반환합니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "실패")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<DataResponse<ExampleResponse>> findById(@PathVariable Long id) {
         return ResponseEntity.ok(
