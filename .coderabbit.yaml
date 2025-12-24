@@ -12,6 +12,9 @@ reviews:
   auto_review:
     enabled: true
     drafts: false # Draft PR은 리뷰하지 않음 (완성되면 리뷰)
+    base_branches:
+      - "main"
+      - "develop"
 
   path_instructions:
     - path: "src/main/java/**/*.java"
