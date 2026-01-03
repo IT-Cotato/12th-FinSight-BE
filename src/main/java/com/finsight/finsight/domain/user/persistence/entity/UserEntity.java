@@ -30,7 +30,7 @@ public class UserEntity {
     @Column(nullable = false)
     private UserStatus status;
 
-    @Column(nullable = false)
+    @Column(name = "user_level", nullable = false)
     private Integer level = 1;
 
     @Column(nullable = false)

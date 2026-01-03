@@ -8,6 +8,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 
@@ -15,9 +16,7 @@ import java.util.Date;
 public class JwtUtil {
 
     private final Key key;
-    // access token 1시간
     private static final long ACCESS_TOKEN_VALIDITY = 60 * 60 * 1000L;
-    // refresh token 30일
     private static final long REFRESH_TOKEN_VALIDITY = 30 * 24 * 60 * 60 * 1000L;
 
     public JwtUtil(@Value("${jwt.secret}") String secret) {
