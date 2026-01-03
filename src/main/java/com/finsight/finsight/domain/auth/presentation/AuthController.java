@@ -68,4 +68,21 @@ public class AuthController {
         authService.logout(userDetails.getUsername());
         return DataResponse.ok();
     }
+
+    @PostMapping("/kakao/login")
+    @Operation(summary = "카카오 로그인")
+    public DataResponse<?> kakaoLogin(@Valid @RequestBody KakaoLoginRequest request) {
+        TokenResponse response = authService.kakaoLogin(request.code());
+        if (response == null) {
+            return DataResponse.ok();
+        }
+        return DataResponse.from(response);
+    }
+
+    @PostMapping("/kakao/signup")
+    @Operation(summary = "카카오 회원가입")
+    public DataResponse<TokenResponse> kakaoSignup(@Valid @RequestBody KakaoSignupRequest request) {
+        TokenResponse response = authService.kakaoSignup(request.code(), request.nickname());
+        return DataResponse.from(response);
+    }
 }
