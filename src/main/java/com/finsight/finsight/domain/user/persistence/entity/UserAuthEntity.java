@@ -49,9 +49,9 @@ public class UserAuthEntity {
     private LocalDateTime updatedAt;
 
     @Builder
-    public UserAuthEntity(Long userId, String identifier, String passwordHash, Boolean isPrimary) {
+    public UserAuthEntity(Long userId, String identifier, String passwordHash, AuthType authType) {
         this.userId = userId;
-        this.authType = AuthType.EMAIL;
+        this.authType = authType;
         this.identifier = identifier;
         this.passwordHash = passwordHash;
         this.isPrimary = 'Y';

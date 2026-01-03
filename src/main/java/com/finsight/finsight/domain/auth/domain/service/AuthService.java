@@ -1,6 +1,8 @@
 package com.finsight.finsight.domain.auth.domain.service;
 
 import com.finsight.finsight.domain.auth.application.dto.request.*;
+import com.finsight.finsight.domain.auth.application.dto.response.KakaoTokenResponse;
+import com.finsight.finsight.domain.auth.application.dto.response.KakaoUserResponse;
 import com.finsight.finsight.domain.auth.domain.service.EmailService;
 import com.finsight.finsight.domain.auth.application.dto.response.TokenResponse;
 import com.finsight.finsight.domain.auth.persistence.entity.EmailVerificationEntity;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +32,7 @@ public class AuthService {
     private final UserAuthRepository userAuthRepository;
     private final EmailVerificationRepository emailVerificationRepository;
     private final EmailService emailService;
+    private final KakaoService kakaoService;
     private final JwtUtil jwtUtil;
     private final BCryptPasswordEncoder passwordEncoder;
 
@@ -100,6 +104,7 @@ public class AuthService {
                 .userId(user.getUserId())
                 .identifier(request.email())
                 .passwordHash(passwordEncoder.encode(request.password()))
+                .authType(AuthType.EMAIL)
                 .build();
 
         userAuthRepository.save(userAuth);
@@ -170,5 +175,82 @@ public class AuthService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         userAuth.clearRefreshToken();
+    }
+
+    /*
+카카오 로그인
+- 이미 가입된 사용자: 토큰 발급
+- 미가입 사용자: null 반환 (회원가입 필요)
+ */
+    public TokenResponse kakaoLogin(String code) {
+        KakaoTokenResponse kakaoToken = kakaoService.getToken(code);
+        KakaoUserResponse kakaoUser = kakaoService.getUserInfo(kakaoToken.accessToken());
+
+        String kakaoId = String.valueOf(kakaoUser.id());
+
+        Optional<UserAuthEntity> existingUser = userAuthRepository
+                .findByIdentifierAndAuthType(kakaoId, AuthType.KAKAO);
+
+        if (existingUser.isEmpty()) {
+            return null;
+        }
+
+        UserAuthEntity userAuth = existingUser.get();
+
+        String accessToken = jwtUtil.createAccessToken(kakaoId);
+        String refreshToken = jwtUtil.createRefreshToken(kakaoId);
+
+        userAuth.updateRefreshToken(refreshToken, LocalDateTime.now().plusDays(30));
+
+        return new TokenResponse(accessToken, refreshToken);
+    }
+
+    /*
+    카카오 회원가입
+    - 닉네임 중복 확인
+    - User, UserAuth 생성
+    - 토큰 발급
+     */
+    public TokenResponse kakaoSignup(String code, String nickname) {
+        if (userRepository.existsByNickname(nickname)) {
+            throw new AppException(ErrorCode.DUPLICATE_NICKNAME);
+        }
+
+        KakaoTokenResponse kakaoToken = kakaoService.getToken(code);
+        KakaoUserResponse kakaoUser = kakaoService.getUserInfo(kakaoToken.accessToken());
+
+        String kakaoId = String.valueOf(kakaoUser.id());
+
+        if (userAuthRepository.existsByIdentifier(kakaoId)) {
+            throw new AppException(ErrorCode.DUPLICATE_EMAIL);
+        }
+
+        String profileImageUrl = null;
+        if (kakaoUser.kakaoAccount() != null && kakaoUser.kakaoAccount().profile() != null) {
+            profileImageUrl = kakaoUser.kakaoAccount().profile().profileImageUrl();
+        }
+
+        UserEntity user = UserEntity.builder()
+                .nickname(nickname)
+                .profileImageUrl(profileImageUrl)
+                .build();
+
+        userRepository.save(user);
+
+        UserAuthEntity userAuth = UserAuthEntity.builder()
+                .userId(user.getUserId())
+                .identifier(kakaoId)
+                .passwordHash(null)
+                .authType(AuthType.KAKAO)
+                .build();
+
+        userAuthRepository.save(userAuth);
+
+        String accessToken = jwtUtil.createAccessToken(kakaoId);
+        String refreshToken = jwtUtil.createRefreshToken(kakaoId);
+
+        userAuth.updateRefreshToken(refreshToken, LocalDateTime.now().plusDays(30));
+
+        return new TokenResponse(accessToken, refreshToken);
     }
 }
