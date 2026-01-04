@@ -1,6 +1,7 @@
 package com.finsight.finsight.domain.auth.domain.service;
 
 import com.finsight.finsight.domain.auth.application.dto.request.*;
+import com.finsight.finsight.domain.auth.application.dto.response.KakaoLoginResponse;
 import com.finsight.finsight.domain.auth.application.dto.response.KakaoTokenResponse;
 import com.finsight.finsight.domain.auth.application.dto.response.KakaoUserResponse;
 import com.finsight.finsight.domain.auth.domain.service.EmailService;
@@ -182,7 +183,7 @@ public class AuthService {
 - 이미 가입된 사용자: 토큰 발급
 - 미가입 사용자: null 반환 (회원가입 필요)
  */
-    public TokenResponse kakaoLogin(String code) {
+    public KakaoLoginResponse kakaoLogin(String code) {
         KakaoTokenResponse kakaoToken = kakaoService.getToken(code);
         KakaoUserResponse kakaoUser = kakaoService.getUserInfo(kakaoToken.accessToken());
 
@@ -192,7 +193,7 @@ public class AuthService {
                 .findByIdentifierAndAuthType(kakaoId, AuthType.KAKAO);
 
         if (existingUser.isEmpty()) {
-            return null;
+            return KakaoLoginResponse.newUser(kakaoId);
         }
 
         UserAuthEntity userAuth = existingUser.get();
@@ -202,37 +203,25 @@ public class AuthService {
 
         userAuth.updateRefreshToken(refreshToken, LocalDateTime.now().plusDays(30));
 
-        return new TokenResponse(accessToken, refreshToken);
+        return KakaoLoginResponse.of(accessToken, refreshToken);
     }
 
     /*
     카카오 회원가입
     - 닉네임 중복 확인
     - User, UserAuth 생성
-    - 토큰 발급
      */
-    public TokenResponse kakaoSignup(String code, String nickname) {
+    public TokenResponse kakaoSignup(String kakaoId, String nickname) {
         if (userRepository.existsByNickname(nickname)) {
             throw new AppException(ErrorCode.DUPLICATE_NICKNAME);
         }
-
-        KakaoTokenResponse kakaoToken = kakaoService.getToken(code);
-        KakaoUserResponse kakaoUser = kakaoService.getUserInfo(kakaoToken.accessToken());
-
-        String kakaoId = String.valueOf(kakaoUser.id());
 
         if (userAuthRepository.existsByIdentifier(kakaoId)) {
             throw new AppException(ErrorCode.DUPLICATE_EMAIL);
         }
 
-        String profileImageUrl = null;
-        if (kakaoUser.kakaoAccount() != null && kakaoUser.kakaoAccount().profile() != null) {
-            profileImageUrl = kakaoUser.kakaoAccount().profile().profileImageUrl();
-        }
-
         UserEntity user = UserEntity.builder()
                 .nickname(nickname)
-                .profileImageUrl(profileImageUrl)
                 .build();
 
         userRepository.save(user);

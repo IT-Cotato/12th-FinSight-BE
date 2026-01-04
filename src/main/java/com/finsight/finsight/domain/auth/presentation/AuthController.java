@@ -1,6 +1,7 @@
 package com.finsight.finsight.domain.auth.presentation;
 
 import com.finsight.finsight.domain.auth.application.dto.request.*;
+import com.finsight.finsight.domain.auth.application.dto.response.KakaoLoginResponse;
 import com.finsight.finsight.domain.auth.application.dto.response.TokenResponse;
 import com.finsight.finsight.domain.auth.domain.service.AuthService;
 import com.finsight.finsight.global.response.DataResponse;
@@ -71,18 +72,15 @@ public class AuthController {
 
     @PostMapping("/kakao/login")
     @Operation(summary = "카카오 로그인")
-    public DataResponse<?> kakaoLogin(@Valid @RequestBody KakaoLoginRequest request) {
-        TokenResponse response = authService.kakaoLogin(request.code());
-        if (response == null) {
-            return DataResponse.ok();
-        }
+    public DataResponse<KakaoLoginResponse> kakaoLogin(@Valid @RequestBody KakaoLoginRequest request) {
+        KakaoLoginResponse response = authService.kakaoLogin(request.code());
         return DataResponse.from(response);
     }
 
     @PostMapping("/kakao/signup")
     @Operation(summary = "카카오 회원가입")
     public DataResponse<TokenResponse> kakaoSignup(@Valid @RequestBody KakaoSignupRequest request) {
-        TokenResponse response = authService.kakaoSignup(request.code(), request.nickname());
+        TokenResponse response = authService.kakaoSignup(request.kakaoId(), request.nickname());
         return DataResponse.from(response);
     }
 }
