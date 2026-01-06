@@ -1,4 +1,11 @@
 name: daily-slack-report.yml
+
 on:
+  workflow_dispatch:
 
 jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op
+        run: echo "placeholder workflow"
