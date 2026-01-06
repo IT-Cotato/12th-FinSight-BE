@@ -28,8 +28,8 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Build (bootJar)
-        run: ./gradlew clean bootJar -x test
+      - name: Build (bootJar) with debug log
+        run: ./gradlew clean bootJar -x test --stacktrace --info
 
       - name: Pick jar and rename to finsight.jar
         run: |
