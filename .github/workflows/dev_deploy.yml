@@ -38,10 +38,16 @@ jobs:
           echo "Picked jar: $JAR_PATH"
           cp "$JAR_PATH" finsight.jar
 
-      - name: Setup SSH key
+      - name: Setup SSH key (debug)
         run: |
+          set -x
+          echo "HOME is: $HOME"
           mkdir -p ~/.ssh
+          ls -ld ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          ls -l ~/.ssh
+          head -5 ~/.ssh/id_rsa || true
+          tail -5 ~/.ssh/id_rsa || true
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
