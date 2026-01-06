@@ -40,16 +40,18 @@ jobs:
 
       - name: Setup SSH key (debug)
         run: |
-          set -x
           echo "HOME is: $HOME"
+          echo "Setting up SSH key..."
           mkdir -p ~/.ssh
           ls -ld ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "SSH key written successfully"
           ls -l ~/.ssh
-          head -5 ~/.ssh/id_rsa || true
-          tail -5 ~/.ssh/id_rsa || true
+          echo "SSH key file size: $(wc -c < ~/.ssh/id_rsa) bytes"
+          echo "SSH key permissions: $(ls -l ~/.ssh/id_rsa | awk '{print $1}')"
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          echo "SSH setup completed"
 
       - name: Upload jar to EC2
         run: |
