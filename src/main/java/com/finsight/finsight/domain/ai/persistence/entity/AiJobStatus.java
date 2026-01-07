@@ -1,4 +1,9 @@
 package com.finsight.finsight.domain.ai.persistence.entity;
 
-public class AiJobStatus {
+public enum AiJobStatus {
+    PENDING,
+    RUNNING,
+    SUCCESS,
+    FAILED
 }
+

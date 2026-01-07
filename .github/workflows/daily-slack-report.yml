@@ -1,11 +1,169 @@
-name: daily-slack-report.yml
+name: FinSight Daily Slack Report
 
 on:
+  schedule:
+    # 매일 09:05 KST = 00:05 UTC
+    - cron: "5 0 * * *"
   workflow_dispatch:
 
 jobs:
-  noop:
+  report:
     runs-on: ubuntu-latest
+
     steps:
-      - name: No-op
-        run: echo "placeholder workflow"
+      - name: Setup SSH key
+        run: |
+          set -e
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Query Prometheus on EC2 and build Slack payload (last 24h)
+        id: build
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+        run: |
+          set -euo pipefail
+
+          prom_query () {
+            local promql="$1"
+            ssh -i ~/.ssh/id_rsa ${EC2_USERNAME}@${EC2_HOST} \
+              "curl -sG 'http://localhost:9090/api/v1/query' --data-urlencode 'query=${promql}'"
+          }
+
+          get_scalar () { echo "$1" | jq -r '(.data.result[0].value[1] // "0")'; }
+
+          # -------------------------
+          # 고정 PromQL
+          # -------------------------
+          Q_SCANNED='sum(increase(crawler_articles_total{status="scanned"}[24h]))'
+          Q_SAVED='sum(increase(crawler_articles_total{status="saved"}[24h]))'
+
+          Q_LIST_FAIL='sum(increase(crawler_articles_total{status="list_fail"}[24h]))'
+          Q_ARTICLE_FAIL='sum(increase(crawler_articles_total{status="article_fail"}[24h]))'
+          Q_PARSE_FAIL='sum(increase(crawler_articles_total{status="parse_fail"}[24h]))'
+
+          Q_FAIL_RATE='(
+            sum(increase(crawler_articles_total{status="list_fail"}[24h])) +
+            sum(increase(crawler_articles_total{status="article_fail"}[24h])) +
+            sum(increase(crawler_articles_total{status="parse_fail"}[24h]))
+          ) / clamp_min(sum(increase(crawler_articles_total{status="scanned"}[24h])), 1)'
+
+          Q_PUB_NULL='sum(increase(crawler_articles_total{status="published_at_null"}[24h]))'
+          Q_PUB_NULL_RATE='sum(increase(crawler_articles_total{status="published_at_null"}[24h]))
+            / clamp_min(sum(increase(crawler_articles_total{status="saved"}[24h])), 1)'
+
+          Q_THUMB_NULL='sum(increase(crawler_articles_total{status="thumbnail_null"}[24h]))'
+
+          Q_SAVED_BY_SECTION='sum by (section) (increase(crawler_articles_total{status="saved"}[24h]))'
+          Q_FAIL_BY_SECTION='sum by (section) (increase(crawler_articles_total{status=~"list_fail|article_fail|parse_fail"}[24h]))'
+
+          # Timer 평균(초)
+          Q_ARTICLE_FETCH_AVG='sum(increase(crawler_fetch_seconds_sum{kind="article"}[24h]))
+            / clamp_min(sum(increase(crawler_fetch_seconds_count{kind="article"}[24h])), 1)'
+          Q_LIST_FETCH_AVG='sum(increase(crawler_fetch_seconds_sum{kind="list"}[24h]))
+            / clamp_min(sum(increase(crawler_fetch_seconds_count{kind="list"}[24h])), 1)'
+          Q_SECTION_RUN_AVG='sum(increase(crawler_run_seconds_sum{scope="section"}[24h]))
+            / clamp_min(sum(increase(crawler_run_seconds_count{scope="section"}[24h])), 1)'
+
+          # -------------------------
+          # Query 실행
+          # -------------------------
+          J_SCANNED="$(prom_query "$Q_SCANNED")"
+          J_SAVED="$(prom_query "$Q_SAVED")"
+          J_LIST_FAIL="$(prom_query "$Q_LIST_FAIL")"
+          J_ARTICLE_FAIL="$(prom_query "$Q_ARTICLE_FAIL")"
+          J_PARSE_FAIL="$(prom_query "$Q_PARSE_FAIL")"
+          J_FAIL_RATE="$(prom_query "$Q_FAIL_RATE")"
+          J_PUB_NULL="$(prom_query "$Q_PUB_NULL")"
+          J_PUB_NULL_RATE="$(prom_query "$Q_PUB_NULL_RATE")"
+          J_THUMB_NULL="$(prom_query "$Q_THUMB_NULL")"
+          J_SAVED_BY_SECTION="$(prom_query "$Q_SAVED_BY_SECTION")"
+          J_FAIL_BY_SECTION="$(prom_query "$Q_FAIL_BY_SECTION")"
+          J_ARTICLE_FETCH_AVG="$(prom_query "$Q_ARTICLE_FETCH_AVG")"
+          J_LIST_FETCH_AVG="$(prom_query "$Q_LIST_FETCH_AVG")"
+          J_SECTION_RUN_AVG="$(prom_query "$Q_SECTION_RUN_AVG")"
+
+          SCANNED="$(get_scalar "$J_SCANNED")"
+          SAVED="$(get_scalar "$J_SAVED")"
+          LIST_FAIL="$(get_scalar "$J_LIST_FAIL")"
+          ARTICLE_FAIL="$(get_scalar "$J_ARTICLE_FAIL")"
+          PARSE_FAIL="$(get_scalar "$J_PARSE_FAIL")"
+          FAIL_RATE="$(get_scalar "$J_FAIL_RATE")"
+          PUB_NULL="$(get_scalar "$J_PUB_NULL")"
+          PUB_NULL_RATE="$(get_scalar "$J_PUB_NULL_RATE")"
+          THUMB_NULL="$(get_scalar "$J_THUMB_NULL")"
+
+          ARTICLE_FETCH_AVG="$(get_scalar "$J_ARTICLE_FETCH_AVG")"
+          LIST_FETCH_AVG="$(get_scalar "$J_LIST_FETCH_AVG")"
+          SECTION_RUN_AVG="$(get_scalar "$J_SECTION_RUN_AVG")"
+
+          format_sections () {
+            echo "$1" | jq -r '
+              if (.data.result | length) == 0 then empty
+              else .data.result[] | "• " + (.metric.section // "unknown") + ": " + .value[1]
+              end
+            ' | sed '/^$/d'
+          }
+
+          SAVED_SECTIONS="$(format_sections "$J_SAVED_BY_SECTION" || true)"
+          FAIL_SECTIONS="$(format_sections "$J_FAIL_BY_SECTION" || true)"
+
+          FAIL_RATE_FMT="$(python3 - <<PY
+  v=float("$FAIL_RATE"); print(f"{v*100:.2f}%")
+  PY
+  )"
+  PUB_NULL_RATE_FMT="$(python3 - <<PY
+  v=float("$PUB_NULL_RATE"); print(f"{v*100:.2f}%")
+  PY
+  )"
+  ARTICLE_FETCH_AVG_FMT="$(python3 - <<PY
+  v=float("$ARTICLE_FETCH_AVG"); print(f"{v:.3f}s")
+  PY
+  )"
+  LIST_FETCH_AVG_FMT="$(python3 - <<PY
+  v=float("$LIST_FETCH_AVG"); print(f"{v:.3f}s")
+  PY
+  )"
+  SECTION_RUN_AVG_FMT="$(python3 - <<PY
+  v=float("$SECTION_RUN_AVG"); print(f"{v:.3f}s")
+  PY
+  )"
+  
+  DATE_KST="$(TZ=Asia/Seoul date +'%Y-%m-%d')"
+  
+  TEXT="📌 *FinSight Daily Report* (${DATE_KST}, last 24h)\n\n"\
+  "*총합*\n"\
+  "• scanned: ${SCANNED}\n"\
+  "• saved: ${SAVED}\n"\
+  "• list_fail: ${LIST_FAIL}\n"\
+  "• article_fail: ${ARTICLE_FAIL}\n"\
+  "• parse_fail: ${PARSE_FAIL}\n"\
+  "• fail rate: ${FAIL_RATE_FMT}\n"\
+  "• publishedAt null: ${PUB_NULL} (${PUB_NULL_RATE_FMT})\n"\
+  "• thumbnail null: ${THUMB_NULL}\n\n"\
+  "*지연(평균)*\n"\
+  "• list fetch avg: ${LIST_FETCH_AVG_FMT}\n"\
+  "• article fetch avg: ${ARTICLE_FETCH_AVG_FMT}\n"\
+  "• section run avg: ${SECTION_RUN_AVG_FMT}\n\n"\
+  "*섹션별 saved*\n${SAVED_SECTIONS:-"(no data)"}\n\n"\
+  "*섹션별 fail*\n${FAIL_SECTIONS:-"(no data)"}\n"
+
+PAYLOAD="$(jq -n --arg text "$TEXT" '{text: $text}')"
+  
+  {
+    echo "payload<<EOF"
+    echo "$PAYLOAD"
+    echo "EOF"
+  } >> "$GITHUB_OUTPUT"
+  
+  - name: Send to Slack
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    run: |
+      set -euo pipefail
+      curl -s -X POST -H 'Content-type: application/json' \
+        --data '${{ steps.build.outputs.payload }}' \
+        "$SLACK_WEBHOOK_URL"
