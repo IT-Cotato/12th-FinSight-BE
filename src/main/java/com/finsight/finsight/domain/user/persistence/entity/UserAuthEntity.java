@@ -72,7 +72,7 @@ public class UserAuthEntity {
     }
 
     @PreUpdate
-    protected void onUpdate() {
+    protected void updateTimestamp() {
         this.updatedAt = LocalDateTime.now();
     }
 }
