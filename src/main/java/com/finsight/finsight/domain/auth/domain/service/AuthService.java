@@ -4,8 +4,9 @@ import com.finsight.finsight.domain.auth.application.dto.request.*;
 import com.finsight.finsight.domain.auth.application.dto.response.KakaoLoginResponse;
 import com.finsight.finsight.domain.auth.application.dto.response.KakaoTokenResponse;
 import com.finsight.finsight.domain.auth.application.dto.response.KakaoUserResponse;
-import com.finsight.finsight.domain.auth.domain.service.EmailService;
 import com.finsight.finsight.domain.auth.application.dto.response.TokenResponse;
+import com.finsight.finsight.domain.auth.exception.AuthException;
+import com.finsight.finsight.domain.auth.exception.code.AuthErrorCode;
 import com.finsight.finsight.domain.auth.persistence.entity.EmailVerificationEntity;
 import com.finsight.finsight.domain.auth.persistence.repository.EmailVerificationRepository;
 import com.finsight.finsight.domain.user.domain.constant.AuthType;
@@ -40,7 +41,7 @@ public class AuthService {
     // 회원가입 닉네임 중복 확인
     public void checkNickname(String nickname) {
         if (userRepository.existsByNickname(nickname)) {
-            throw new AppException(ErrorCode.DUPLICATE_NICKNAME);
+            throw new AuthException(AuthErrorCode.DUPLICATE_NICKNAME);
         }
     }
 
@@ -51,7 +52,7 @@ public class AuthService {
      */
     public void sendCode(String email) {
         if (userAuthRepository.existsByIdentifier(email)) {
-            throw new AppException(ErrorCode.DUPLICATE_EMAIL);
+            throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
         }
 
         String code = emailService.generateVerificationCode();
@@ -76,11 +77,11 @@ public class AuthService {
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
 
         if (verification.isExpired()) {
-            throw new AppException(ErrorCode.VERIFICATION_CODE_EXPIRED);
+            throw new AuthException(AuthErrorCode.VERIFICATION_CODE_EXPIRED);
         }
 
         if (!verification.getVerificationCode().equals(code)) {
-            throw new AppException(ErrorCode.VERIFICATION_CODE_MISMATCH);
+            throw new AuthException(AuthErrorCode.VERIFICATION_CODE_MISMATCH);
         }
 
         verification.verify();
@@ -92,7 +93,7 @@ public class AuthService {
      */
     public void signup(SignupRequest request) {
         if (userRepository.existsByNickname(request.nickname())) {
-            throw new AppException(ErrorCode.DUPLICATE_NICKNAME);
+            throw new AuthException(AuthErrorCode.DUPLICATE_NICKNAME);
         }
 
         UserEntity user = UserEntity.builder()
@@ -121,10 +122,10 @@ public class AuthService {
     public TokenResponse login(LoginRequest request) {
         UserAuthEntity userAuth = userAuthRepository
                 .findByIdentifierAndAuthType(request.email(), AuthType.EMAIL)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
         if (!passwordEncoder.matches(request.password(), userAuth.getPasswordHash())) {
-            throw new AppException(ErrorCode.INVALID_PASSWORD);
+            throw new AuthException(AuthErrorCode.INVALID_PASSWORD);
         }
 
         String accessToken = jwtUtil.createAccessToken(request.email());
@@ -141,21 +142,21 @@ public class AuthService {
      */
     public TokenResponse refresh(String refreshToken) {
         if (!jwtUtil.validateToken(refreshToken)) {
-            throw new AppException(ErrorCode.INVALID_TOKEN);
+            throw new AuthException(AuthErrorCode.INVALID_TOKEN);
         }
 
         if (jwtUtil.isExpired(refreshToken)) {
-            throw new AppException(ErrorCode.EXPIRED_TOKEN);
+            throw new AuthException(AuthErrorCode.EXPIRED_TOKEN);
         }
 
         String email = jwtUtil.getEmail(refreshToken);
 
         UserAuthEntity userAuth = userAuthRepository
                 .findByIdentifierAndAuthType(email, AuthType.EMAIL)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
         if (!refreshToken.equals(userAuth.getRefreshToken())) {
-            throw new AppException(ErrorCode.INVALID_TOKEN);
+            throw new AuthException(AuthErrorCode.INVALID_TOKEN);
         }
 
         String newAccessToken = jwtUtil.createAccessToken(email);
@@ -173,7 +174,7 @@ public class AuthService {
     public void logout(String email) {
         UserAuthEntity userAuth = userAuthRepository
                 .findByIdentifierAndAuthType(email, AuthType.EMAIL)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
         userAuth.clearRefreshToken();
     }
@@ -213,11 +214,11 @@ public class AuthService {
      */
     public TokenResponse kakaoSignup(String kakaoId, String nickname) {
         if (userRepository.existsByNickname(nickname)) {
-            throw new AppException(ErrorCode.DUPLICATE_NICKNAME);
+            throw new AuthException(AuthErrorCode.DUPLICATE_NICKNAME);
         }
 
         if (userAuthRepository.existsByIdentifier(kakaoId)) {
-            throw new AppException(ErrorCode.DUPLICATE_EMAIL);
+            throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
         }
 
         UserEntity user = UserEntity.builder()

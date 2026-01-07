@@ -4,11 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.finsight.finsight.domain.naver.application.dto.response.NaverCrawlResultResponse;
 import com.finsight.finsight.domain.naver.domain.constant.NaverEconomySection;
+import com.finsight.finsight.domain.naver.exception.code.NaverCrawlErrorCode;
 import com.finsight.finsight.domain.naver.persistence.entity.NaverArticleEntity;
 import com.finsight.finsight.domain.naver.persistence.repository.NaverArticleRepository;
 import com.finsight.finsight.global.config.NaverCrawlerProperties;
-import com.finsight.finsight.global.exception.ErrorCode;
-import com.finsight.finsight.global.exception.NaverCrawlException;
+import com.finsight.finsight.domain.naver.exception.NaverCrawlException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -80,12 +80,12 @@ public class NaverCrawlerService {
 
         // “전 섹션 리스트 페이지 접근 실패” = 차단/네트워크/UA 문제 가능성 높음 → API용 에러코드
         if (agg.allListFailedSections == sections) {
-            throw new NaverCrawlException(ErrorCode.NAVER_LIST_FETCH_FAIL);
+            throw new NaverCrawlException(NaverCrawlErrorCode.NAVER_LIST_FETCH_FAIL);
         }
 
         // 저장 0인데 실패만 누적됨 → 외부 실패로 판단
         if (agg.totalSaved == 0 && (agg.listFail + agg.articleFail + agg.parseFail) > 0) {
-            throw new NaverCrawlException(ErrorCode.NAVER_ARTICLE_FETCH_FAIL);
+            throw new NaverCrawlException(NaverCrawlErrorCode.NAVER_ARTICLE_FETCH_FAIL);
         }
 
         log.info("[NAVER-CRAWL] end all sections totalScanned={} totalSaved={} listFail={} articleFail={} parseFail={} allListFailedSections={}/{}",

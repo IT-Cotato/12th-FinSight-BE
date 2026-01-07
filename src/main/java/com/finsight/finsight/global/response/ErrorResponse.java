@@ -1,6 +1,6 @@
 package com.finsight.finsight.global.response;
 
-import com.finsight.finsight.global.exception.ErrorCode;
+import com.finsight.finsight.global.exception.BaseErrorCode;
 import org.springframework.http.HttpStatus;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,7 +22,7 @@ public class ErrorResponse extends BaseResponse {
         this.requestURI = requestURI;
     }
 
-    public static ErrorResponse of(ErrorCode errorCode, HttpServletRequest request) {
+    public static ErrorResponse of(BaseErrorCode errorCode, HttpServletRequest request) {
         return new ErrorResponse(
                 errorCode.getCode(),
                 errorCode.getMessage(),

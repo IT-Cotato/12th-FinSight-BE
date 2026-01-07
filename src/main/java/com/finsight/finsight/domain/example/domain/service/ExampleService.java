@@ -1,10 +1,10 @@
 package com.finsight.finsight.domain.example.domain.service;
 
 import com.finsight.finsight.domain.example.application.dto.response.ExampleResponse;
+import com.finsight.finsight.domain.example.exception.ExampleException;
+import com.finsight.finsight.domain.example.exception.code.ExampleErrorCode;
 import com.finsight.finsight.domain.example.persistence.entity.ExampleEntity;
 import com.finsight.finsight.domain.example.persistence.repository.ExampleRepository;
-import com.finsight.finsight.global.exception.EntityNotFoundException;
-import com.finsight.finsight.global.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,7 +28,7 @@ public class ExampleService {
     public ExampleResponse findById(Long id) {
         return ExampleResponse.from(
                 exampleRepository.findById(id)
-                        .orElseThrow(() -> new EntityNotFoundException(ErrorCode.NOT_FOUND))
+                        .orElseThrow(() -> new ExampleException(ExampleErrorCode.EXAMPLE_NOT_FOUND))
         );
     }
 }
