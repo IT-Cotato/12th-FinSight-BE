@@ -32,6 +32,16 @@ public enum ErrorCode {
 
     //500
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부에서 에러가 발생하였습니다.", "COMMON-004"),
+
+    // 502/503 성격(외부 의존 실패)
+    NAVER_LIST_FETCH_FAIL(HttpStatus.BAD_GATEWAY, "네이버 목록 페이지 조회 실패", "NAVER-001"),
+    NAVER_ARTICLE_FETCH_FAIL(HttpStatus.BAD_GATEWAY, "네이버 기사 페이지 조회 실패", "NAVER-002"),
+    NAVER_ARTICLE_PARSE_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "네이버 기사 파싱 실패", "NAVER-003"),
+
+    // AI 잡
+    AI_JOB_NOT_FOUND(HttpStatus.NOT_FOUND, "AI 작업을 찾을 수 없습니다.", "AI-001"),
+    OPENAI_RATE_LIMIT(HttpStatus.TOO_MANY_REQUESTS, "OpenAI 호출 제한에 걸렸습니다.", "AI-002"),
+    OPENAI_API_FAIL(HttpStatus.BAD_GATEWAY, "OpenAI API 호출에 실패했습니다.", "AI-003"),
     ;
 
     private final HttpStatus httpStatus;

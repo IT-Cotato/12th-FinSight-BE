@@ -17,6 +17,7 @@ spring:
         show_sql: true
         dialect: org.hibernate.dialect.OracleDialect
 
+
   mail:
     host: smtp.gmail.com
     port: 587
@@ -37,3 +38,14 @@ kakao:
   client-id: ${KAKAO_CLIENT_ID}
   client-secret: ${KAKAO_CLIENT_SECRET}
   redirect-uri: ${KAKAO_REDIRECT_URI}
+
+naver:
+  crawler:
+    cron: "0 */5 * * * *"       # 5분마다
+    max-pages: 2                # 각 탭 최신 2페이지까지만
+    stop-after-seen-streak: 8   # 이미 저장된 기사 연속 8개면 종료
+    timeout-ms: 8000
+    sleep-min-ms: 250
+    sleep-max-ms: 700
+    user-agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome Safari"
+
