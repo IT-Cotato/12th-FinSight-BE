@@ -17,6 +17,28 @@ spring:
         show_sql: true
         dialect: org.hibernate.dialect.OracleDialect
 
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+jwt:
+  secret: ${JWT_SECRET}
+
+kakao:
+  client-id: ${KAKAO_CLIENT_ID}
+  client-secret: ${KAKAO_CLIENT_SECRET}
+  redirect-uri: ${KAKAO_REDIRECT_URI}
+
 naver:
   crawler:
     cron: "0 */5 * * * *"       # 5분마다
@@ -26,3 +48,4 @@ naver:
     sleep-min-ms: 250
     sleep-max-ms: 700
     user-agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome Safari"
+
