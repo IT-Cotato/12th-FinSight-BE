@@ -5,9 +5,9 @@ import lombok.Getter;
 @Getter
 public class AppException extends RuntimeException {
 
-    private final ErrorCode errorCode;
+    private final BaseErrorCode errorCode;
 
-    public AppException(ErrorCode errorCode) {
+    public AppException(BaseErrorCode errorCode) {
         super(errorCode.getMessage());
         this.errorCode = errorCode;
     }
