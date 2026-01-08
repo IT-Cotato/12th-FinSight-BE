@@ -10,8 +10,6 @@ import com.finsight.finsight.domain.naver.persistence.entity.NaverArticleEntity;
 import com.finsight.finsight.domain.naver.persistence.repository.NaverArticleRepository;
 import com.finsight.finsight.global.config.NaverCrawlerProperties;
 import com.finsight.finsight.domain.naver.exception.NaverCrawlException;
-import com.finsight.finsight.global.exception.ErrorCode;
-import com.finsight.finsight.global.exception.NaverCrawlException;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;

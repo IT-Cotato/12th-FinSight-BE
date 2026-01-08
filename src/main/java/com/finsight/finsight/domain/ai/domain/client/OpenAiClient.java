@@ -1,9 +1,9 @@
 package com.finsight.finsight.domain.ai.domain.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.finsight.finsight.domain.ai.exception.code.AiErrorCode;
 import com.finsight.finsight.global.config.OpenAiProperties;
 import com.finsight.finsight.global.exception.AppException;
-import com.finsight.finsight.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
@@ -72,19 +72,19 @@ public class OpenAiClient {
                     continue;
                 }
 
-                if (code == 429) throw new AppException(ErrorCode.OPENAI_RATE_LIMIT);
-                throw new AppException(ErrorCode.OPENAI_API_FAIL);
+                if (code == 429) throw new AppException(AiErrorCode.OPENAI_RATE_LIMIT);
+                throw new AppException(AiErrorCode.OPENAI_API_FAIL);
 
             } catch (Exception e) {
                 if (attempt < maxTries) {
                     sleep(jitter(baseSleepMs * (1L << (attempt - 1))));
                     continue;
                 }
-                throw new AppException(ErrorCode.OPENAI_API_FAIL);
+                throw new AppException(AiErrorCode.OPENAI_API_FAIL);
             }
         }
 
-        throw new AppException(ErrorCode.OPENAI_API_FAIL);
+        throw new AppException(AiErrorCode.OPENAI_API_FAIL);
     }
 
     public static String extractOutputText(JsonNode root) {

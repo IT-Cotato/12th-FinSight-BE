@@ -6,12 +6,15 @@ import com.finsight.finsight.domain.ai.domain.client.OpenAiClient;
 import com.finsight.finsight.domain.ai.domain.metrics.AiMetrics;
 import com.finsight.finsight.domain.ai.domain.prompt.AiPrompts;
 import com.finsight.finsight.domain.ai.domain.prompt.AiSchemas;
+import com.finsight.finsight.domain.ai.exception.code.AiErrorCode;
 import com.finsight.finsight.domain.ai.persistence.entity.*;
 import com.finsight.finsight.domain.ai.persistence.repository.*;
+import com.finsight.finsight.domain.naver.exception.code.NaverCrawlErrorCode;
 import com.finsight.finsight.domain.naver.persistence.entity.NaverArticleEntity;
 import com.finsight.finsight.domain.term.domain.service.TermService;
 import com.finsight.finsight.domain.term.persistence.entity.TermEntity;
 import com.finsight.finsight.global.exception.AppException;
+import com.finsight.finsight.global.exception.BaseErrorCode;
 import com.finsight.finsight.global.exception.ErrorCode;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -106,7 +109,7 @@ public class AiJobService {
             NaverArticleEntity article = job.getArticle();
 
             // 본문 없으면 실패
-            if (isBlank(article.getContent())) throw new AppException(ErrorCode.NAVER_ARTICLE_PARSE_FAIL);
+            if (isBlank(article.getContent())) throw new AppException(NaverCrawlErrorCode.NAVER_ARTICLE_PARSE_FAIL);
 
             JsonNode response = openAiClient.createJsonSchemaResponse(
                     List.of(
@@ -123,17 +126,17 @@ public class AiJobService {
             );
 
             String jsonText = OpenAiClient.extractOutputText(response);
-            if (jsonText == null || jsonText.isBlank()) throw new AppException(ErrorCode.OPENAI_API_FAIL);
+            if (jsonText == null || jsonText.isBlank()) throw new AppException(AiErrorCode.OPENAI_API_FAIL);
 
             JsonNode parsed = OM.readTree(jsonText);
 
             JsonNode arr = parsed.path("summary3");
-            if (!arr.isArray() || arr.size() != 3) throw new AppException(ErrorCode.OPENAI_API_FAIL);
+            if (!arr.isArray() || arr.size() != 3) throw new AppException(AiErrorCode.OPENAI_API_FAIL);
 
             List<String> lines = new ArrayList<>(3);
             for (JsonNode n : arr) {
                 String line = n.asText(null);
-                if (line == null || line.isBlank()) throw new AppException(ErrorCode.OPENAI_API_FAIL);
+                if (line == null || line.isBlank()) throw new AppException(AiErrorCode.OPENAI_API_FAIL);
                 lines.add(line.trim());
             }
 
@@ -141,7 +144,7 @@ public class AiJobService {
             String summary3Lines = String.join("\n", lines);
 
             String summaryFull = parsed.path("summaryFull").asText(null);
-            if (summaryFull == null || summaryFull.isBlank()) throw new AppException(ErrorCode.OPENAI_API_FAIL);
+            if (summaryFull == null || summaryFull.isBlank()) throw new AppException(AiErrorCode.OPENAI_API_FAIL);
 
             completeSummarySuccess(job, article, summary3Lines, summaryFull);
 
@@ -151,7 +154,7 @@ public class AiJobService {
             metrics.incProcessed(AiJobType.SUMMARY, "failed");
         } catch (Exception e) {
             log.error("[AI] summary unexpected error jobId={}", jobId, e);
-            markJobFailed(jobId, ErrorCode.OPENAI_API_FAIL);
+            markJobFailed(jobId, AiErrorCode.OPENAI_API_FAIL);
             metrics.incProcessed(AiJobType.SUMMARY, "failed");
         } finally {
             metrics.stopTimer(sample, AiJobType.SUMMARY);
@@ -208,11 +211,11 @@ public class AiJobService {
             );
 
             String jsonText = OpenAiClient.extractOutputText(response);
-            if (jsonText == null || jsonText.isBlank()) throw new AppException(ErrorCode.OPENAI_API_FAIL);
+            if (jsonText == null || jsonText.isBlank()) throw new AppException(AiErrorCode.OPENAI_API_FAIL);
 
             JsonNode parsed = OM.readTree(jsonText);
             JsonNode cards = parsed.path("cards");
-            if (!cards.isArray() || cards.size() != 3) throw new AppException(ErrorCode.OPENAI_API_FAIL);
+            if (!cards.isArray() || cards.size() != 3) throw new AppException(AiErrorCode.OPENAI_API_FAIL);
 
             completeTermCardsSuccess(ctx.job, ctx.article, cards);
 
@@ -222,7 +225,7 @@ public class AiJobService {
             metrics.incProcessed(AiJobType.TERM_CARDS, "failed");
         } catch (Exception e) {
             log.error("[AI] term_cards unexpected error jobId={}", jobId, e);
-            markJobFailed(jobId, ErrorCode.OPENAI_API_FAIL);
+            markJobFailed(jobId, AiErrorCode.OPENAI_API_FAIL);
             metrics.incProcessed(AiJobType.TERM_CARDS, "failed");
         } finally {
             metrics.stopTimer(sample, AiJobType.TERM_CARDS);
@@ -246,7 +249,7 @@ public class AiJobService {
             String definition = c.path("definition").asText(null);
 
             if (isBlank(rawTerm) || isBlank(highlightText) || isBlank(definition)) {
-                throw new AppException(ErrorCode.OPENAI_API_FAIL);
+                throw new AppException(AiErrorCode.OPENAI_API_FAIL);
             }
 
             // ✅ 전역 용어 upsert (definition은 전역에만 저장)
@@ -271,7 +274,7 @@ public class AiJobService {
             if (order > 3) break;
         }
 
-        if (order <= 3) throw new AppException(ErrorCode.OPENAI_API_FAIL);
+        if (order <= 3) throw new AppException(AiErrorCode.OPENAI_API_FAIL);
 
         job.markSuccess();
 
@@ -297,7 +300,7 @@ public class AiJobService {
             );
 
             String jsonText = OpenAiClient.extractOutputText(response);
-            if (jsonText == null || jsonText.isBlank()) throw new AppException(ErrorCode.OPENAI_API_FAIL);
+            if (jsonText == null || jsonText.isBlank()) throw new AppException(AiErrorCode.OPENAI_API_FAIL);
 
             completeInsightSuccess(ctx.job, ctx.article, jsonText);
 
@@ -307,7 +310,7 @@ public class AiJobService {
             metrics.incProcessed(AiJobType.INSIGHT, "failed");
         } catch (Exception e) {
             log.error("[AI] insight unexpected error jobId={}", jobId, e);
-            markJobFailed(jobId, ErrorCode.OPENAI_API_FAIL);
+            markJobFailed(jobId, AiErrorCode.OPENAI_API_FAIL);
             metrics.incProcessed(AiJobType.INSIGHT, "failed");
         } finally {
             metrics.stopTimer(sample, AiJobType.INSIGHT);
@@ -355,7 +358,7 @@ public class AiJobService {
             );
 
             String jsonText = OpenAiClient.extractOutputText(response);
-            if (jsonText == null || jsonText.isBlank()) throw new AppException(ErrorCode.OPENAI_API_FAIL);
+            if (jsonText == null || jsonText.isBlank()) throw new AppException(AiErrorCode.OPENAI_API_FAIL);
 
             completeQuizSuccess(ctx.job, ctx.article, AiJobType.QUIZ_CONTENT, jsonText);
 
@@ -365,7 +368,7 @@ public class AiJobService {
             metrics.incProcessed(AiJobType.QUIZ_CONTENT, "failed");
         } catch (Exception e) {
             log.error("[AI] quiz_content unexpected error jobId={}", jobId, e);
-            markJobFailed(jobId, ErrorCode.OPENAI_API_FAIL);
+            markJobFailed(jobId, AiErrorCode.OPENAI_API_FAIL);
             metrics.incProcessed(AiJobType.QUIZ_CONTENT, "failed");
         } finally {
             metrics.stopTimer(sample, AiJobType.QUIZ_CONTENT);
@@ -396,7 +399,7 @@ public class AiJobService {
             );
 
             String jsonText = OpenAiClient.extractOutputText(response);
-            if (jsonText == null || jsonText.isBlank()) throw new AppException(ErrorCode.OPENAI_API_FAIL);
+            if (jsonText == null || jsonText.isBlank()) throw new AppException(AiErrorCode.OPENAI_API_FAIL);
 
             completeQuizSuccess(job, article, AiJobType.QUIZ_TERM, jsonText);
 
@@ -406,7 +409,7 @@ public class AiJobService {
             metrics.incProcessed(AiJobType.QUIZ_TERM, "failed");
         } catch (Exception e) {
             log.error("[AI] quiz_term unexpected error jobId={}", jobId, e);
-            markJobFailed(jobId, ErrorCode.OPENAI_API_FAIL);
+            markJobFailed(jobId, AiErrorCode.OPENAI_API_FAIL);
             metrics.incProcessed(AiJobType.QUIZ_TERM, "failed");
         } finally {
             metrics.stopTimer(sample, AiJobType.QUIZ_TERM);
@@ -444,7 +447,7 @@ public class AiJobService {
     @Transactional(readOnly = true)
     protected AiJobEntity loadRunningJob(Long jobId, AiJobType expectedType) {
         AiJobEntity job = aiJobRepository.findByIdWithArticle(jobId)
-                .orElseThrow(() -> new AppException(ErrorCode.AI_JOB_NOT_FOUND));
+                .orElseThrow(() -> new AppException(AiErrorCode.AI_JOB_NOT_FOUND));
 
         if (job.getStatus() != AiJobStatus.RUNNING) throw new AppException(ErrorCode.BAD_REQUEST);
         if (job.getJobType() != expectedType) throw new AppException(ErrorCode.BAD_REQUEST);
@@ -487,9 +490,9 @@ public class AiJobService {
     }
 
     @Transactional
-    protected void markJobFailed(Long jobId, ErrorCode errorCode) {
+    protected void markJobFailed(Long jobId, BaseErrorCode errorCode) {
         AiJobEntity job = aiJobRepository.findById(jobId)
-                .orElseThrow(() -> new AppException(ErrorCode.AI_JOB_NOT_FOUND));
+                .orElseThrow(() -> new AppException(AiErrorCode.AI_JOB_NOT_FOUND));
         job.markFailed(errorCode.getCode(), errorCode.getMessage());
     }
 

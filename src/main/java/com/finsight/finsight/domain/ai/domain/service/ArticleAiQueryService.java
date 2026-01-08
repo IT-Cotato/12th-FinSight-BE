@@ -1,7 +1,7 @@
 package com.finsight.finsight.domain.ai.domain.service;
 
 import com.finsight.finsight.domain.ai.application.dto.response.*;
-import com.finsight.finsight.domain.ai.persistence.entity.AiJobStatus;
+import com.finsight.finsight.domain.ai.exception.code.AiErrorCode;
 import com.finsight.finsight.domain.ai.persistence.entity.AiJobType;
 import com.finsight.finsight.domain.ai.persistence.repository.*;
 import com.finsight.finsight.domain.naver.persistence.entity.NaverArticleEntity;
@@ -45,7 +45,7 @@ public class ArticleAiQueryService {
                 && cards.size() >= 3;
 
         if (!ready) {
-            throw new AppException(ErrorCode.AI_RESULT_NOT_READY);
+            throw new AppException(AiErrorCode.AI_RESULT_NOT_READY);
         }
 
         var summary = summaryOpt.get();
