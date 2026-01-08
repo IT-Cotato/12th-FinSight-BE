@@ -1,6 +1,7 @@
 package com.finsight.finsight.domain.ai.persistence.repository;
 
 import com.finsight.finsight.domain.ai.persistence.entity.AiJobEntity;
+import com.finsight.finsight.domain.ai.persistence.entity.AiJobType;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
@@ -37,4 +38,6 @@ public interface AiJobRepository extends JpaRepository<AiJobEntity, Long> {
           AND status = 'PENDING'
         """, nativeQuery = true)
     int markRunning(@Param("ids") List<Long> ids);
+
+    Optional<AiJobEntity> findTopByArticle_IdAndJobTypeOrderByRequestedAtDesc(Long articleId, AiJobType jobType);
 }
