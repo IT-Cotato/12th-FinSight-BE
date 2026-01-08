@@ -2,6 +2,7 @@ package com.finsight.finsight.domain.naver.domain.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.finsight.finsight.domain.ai.domain.service.AiJobService;
 import com.finsight.finsight.domain.naver.application.dto.response.NaverCrawlResultResponse;
 import com.finsight.finsight.domain.naver.domain.constant.NaverEconomySection;
 import com.finsight.finsight.domain.naver.exception.code.NaverCrawlErrorCode;
@@ -9,6 +10,9 @@ import com.finsight.finsight.domain.naver.persistence.entity.NaverArticleEntity;
 import com.finsight.finsight.domain.naver.persistence.repository.NaverArticleRepository;
 import com.finsight.finsight.global.config.NaverCrawlerProperties;
 import com.finsight.finsight.domain.naver.exception.NaverCrawlException;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +41,10 @@ public class NaverCrawlerService {
     private final NaverArticleRepository repository;
     private final NaverCrawlerProperties props;
 
+    private final MeterRegistry meterRegistry;
+
+    private final AiJobService aiJobService;
+
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final ObjectMapper OM = new ObjectMapper();
     private static final Pattern ARTICLE_PATH = Pattern.compile("/article/(\\d+)/(\\d+)");
@@ -56,6 +64,7 @@ public class NaverCrawlerService {
      */
     @Transactional
     public NaverCrawlResultResponse crawlAllOnce() {
+        Timer.Sample allSample = Timer.start(meterRegistry);
         CrawlAggregate agg = new CrawlAggregate();
 
         log.info("[NAVER-CRAWL] start all sections maxPages={}, stopAfterSeenStreak={}, timeoutMs={}",
@@ -78,15 +87,21 @@ public class NaverCrawlerService {
 
         int sections = NaverEconomySection.values().length;
 
-        // “전 섹션 리스트 페이지 접근 실패” = 차단/네트워크/UA 문제 가능성 높음 → API용 에러코드
+        // 전 섹션 리스트 페이지 접근 실패 = 차단/네트워크/UA 문제 가능성 높음
         if (agg.allListFailedSections == sections) {
+            incAll("all", "list_fail_all_sections");
             throw new NaverCrawlException(NaverCrawlErrorCode.NAVER_LIST_FETCH_FAIL);
         }
 
         // 저장 0인데 실패만 누적됨 → 외부 실패로 판단
         if (agg.totalSaved == 0 && (agg.listFail + agg.articleFail + agg.parseFail) > 0) {
+            incAll("all", "saved_zero_with_fail");
             throw new NaverCrawlException(NaverCrawlErrorCode.NAVER_ARTICLE_FETCH_FAIL);
         }
+
+        allSample.stop(Timer.builder("crawler_run_seconds")
+                .tag("scope", "all")
+                .register(meterRegistry));
 
         log.info("[NAVER-CRAWL] end all sections totalScanned={} totalSaved={} listFail={} articleFail={} parseFail={} allListFailedSections={}/{}",
                 agg.totalScanned, agg.totalSaved, agg.listFail, agg.articleFail, agg.parseFail, agg.allListFailedSections, sections);
@@ -104,6 +119,8 @@ public class NaverCrawlerService {
         String sectionName = section.getDisplayName();
         CrawlSectionResult result = new CrawlSectionResult(sectionName);
 
+        Timer.Sample sectionSample = Timer.start(meterRegistry);
+
         int seenStreak = 0;
 
         log.info("[NAVER-CRAWL] section start: {}", sectionName);
@@ -114,7 +131,12 @@ public class NaverCrawlerService {
 
             Document listDoc;
             try {
+                Timer.Sample fetchSample = Timer.start(meterRegistry);
                 listDoc = fetch(listUrl);
+                fetchSample.stop(Timer.builder("crawler_fetch_seconds")
+                        .tag("kind", "list")
+                        .tag("section", sectionName)
+                        .register(meterRegistry));
                 result.listPagesSuccess++;
             } catch (Exception e) {
                 result.listFail++;
@@ -130,15 +152,19 @@ public class NaverCrawlerService {
 
             for (ArticleId id : ids) {
                 result.scanned++;
+                inc(sectionName, "scanned");
 
                 // DB 중복 체크: (oid, aid)
                 boolean exists = repository.existsByOidAndAid(id.oid, id.aid);
                 if (exists) {
                     seenStreak++;
+                    inc(sectionName, "duplicate_seen");
+
                     log.debug("[NAVER-CRAWL] already exists section={} oid={} aid={} seenStreak={}",
                             sectionName, id.oid, id.aid, seenStreak);
 
                     if (seenStreak >= props.getStopAfterSeenStreak()) {
+                        inc(sectionName, "stop_after_seen_streak");
                         log.info("[NAVER-CRAWL] stop early section={} reason=seenStreak({}) reached",
                                 sectionName, seenStreak);
                         stop = true;
@@ -153,9 +179,18 @@ public class NaverCrawlerService {
                 String articleUrl = id.canonicalUrl();
 
                 try {
+                    Timer.Sample fetchSample = Timer.start(meterRegistry);
                     Document articleDoc = fetch(articleUrl);
+                    fetchSample.stop(Timer.builder("crawler_fetch_seconds")
+                            .tag("kind", "article")
+                            .tag("section", sectionName)
+                            .register(meterRegistry));
 
                     ParsedArticle parsed = parseArticle(articleDoc);
+
+                    // 품질 메트릭
+                    if (parsed.publishedAt == null) inc(sectionName, "published_at_null");
+                    if (parsed.thumbnailUrl == null) inc(sectionName, "thumbnail_null");
 
                     // 디버깅: publishedAt NULL 원인 추적 로그
                     if (parsed.publishedAt == null) {
@@ -170,13 +205,15 @@ public class NaverCrawlerService {
 
                     if (parsed.content == null || parsed.content.isBlank()) {
                         result.parseFail++;
+                        inc(sectionName, "parse_fail");
+
                         log.debug("[NAVER-CRAWL] parse fail(blank content) section={} url={}",
                                 sectionName, articleUrl);
                         continue;
                     }
 
                     NaverArticleEntity entity = NaverArticleEntity.builder()
-                            .category(sectionName)
+                            .section(section)
                             .oid(id.oid)
                             .aid(id.aid)
                             .url(articleUrl)
@@ -191,18 +228,23 @@ public class NaverCrawlerService {
                     try {
                         repository.save(entity);
                         result.saved++;
+                        inc(sectionName, "saved");
 
                         log.info("[NAVER-CRAWL] saved section={} oid={} aid={} publishedAt={} title={}",
                                 sectionName, id.oid, id.aid, parsed.publishedAt, truncate(parsed.title, 80));
 
+                        aiJobService.enqueueSummary(entity, "v1", "gpt-4o-mini");
                     } catch (DataIntegrityViolationException dup) {
                         // 유니크(oid,aid) 레이스 방지
+                        inc(sectionName, "duplicate_race");
                         log.debug("[NAVER-CRAWL] duplicate prevented by DB section={} oid={} aid={}",
                                 sectionName, id.oid, id.aid);
                     }
 
                 } catch (Exception e) {
                     result.articleFail++;
+                    inc(sectionName, "article_fail");
+
                     log.warn("[NAVER-CRAWL] article fetch/parse fail section={} url={} err={}",
                             sectionName, articleUrl, e.toString());
                 } finally {
@@ -213,10 +255,35 @@ public class NaverCrawlerService {
             if (stop) break;
         }
 
+        sectionSample.stop(Timer.builder("crawler_run_seconds")
+                .tag("scope", "section")
+                .tag("section", sectionName)
+                .register(meterRegistry));
+
         log.info("[NAVER-CRAWL] section end: {} scanned={} saved={} listFail={} articleFail={} parseFail={} listPagesTried={} listPagesSuccess={}",
                 sectionName, result.scanned, result.saved, result.listFail, result.articleFail, result.parseFail, result.listPagesTried, result.listPagesSuccess);
 
         return result;
+    }
+
+    // =========================
+    // Micrometer helpers
+    // =========================
+
+    private void inc(String section, String status) {
+        Counter.builder("crawler_articles_total")
+                .tag("section", section)
+                .tag("status", status)
+                .register(meterRegistry)
+                .increment();
+    }
+
+    private void incAll(String scope, String status) {
+        Counter.builder("crawler_events_total")
+                .tag("scope", scope)
+                .tag("status", status)
+                .register(meterRegistry)
+                .increment();
     }
 
     private String buildListUrl(String baseUrl, int page) {

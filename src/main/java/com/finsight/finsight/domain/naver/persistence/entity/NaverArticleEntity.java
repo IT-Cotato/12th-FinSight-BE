@@ -1,5 +1,6 @@
 package com.finsight.finsight.domain.naver.persistence.entity;
 
+import com.finsight.finsight.domain.naver.domain.constant.NaverEconomySection;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -22,8 +23,9 @@ public class NaverArticleEntity {
     @Column(name = "naver_article_id")
     private Long id;
 
-    @Column(name = "category", nullable = false, length = 50)
-    private String category;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "section", nullable = false, length = 30)
+    private NaverEconomySection section;
 
     @Column(name = "oid", nullable = false, length = 10)
     private String oid;
@@ -54,10 +56,10 @@ public class NaverArticleEntity {
     private String thumbnailUrl;
 
     @Builder
-    public NaverArticleEntity(String category, String oid, String aid, String url,
+    public NaverArticleEntity(NaverEconomySection section, String oid, String aid, String url,
                               String title, String press, LocalDateTime publishedAt,
                               String content, LocalDateTime collectedAt, String thumbnailUrl) {
-        this.category = category;
+        this.section = section;
         this.oid = oid;
         this.aid = aid;
         this.url = url;

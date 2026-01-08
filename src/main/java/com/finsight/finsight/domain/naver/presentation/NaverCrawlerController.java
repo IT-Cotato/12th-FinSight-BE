@@ -19,7 +19,7 @@ public class NaverCrawlerController {
     private final NaverCrawlerService crawlerService;
 
     @Operation(
-            summary = "네이버 경제(8개 탭) 크롤링 수동 실행",
+            summary = "네이버 경제(8개 탭) 크롤링 수동 실행 // 테스트",
             description = "네이버 뉴스 경제 8개 탭에서 최신 기사를 수집하고 DB에 저장합니다. (중복은 oid+aid로 방지)"
     )
     @ApiResponses({
@@ -29,9 +29,7 @@ public class NaverCrawlerController {
     @PostMapping("/crawl")
     public ResponseEntity<DataResponse<NaverCrawlResultResponse>> crawlOnce() {
         return ResponseEntity.ok(
-                DataResponse.created(
-                        crawlerService.crawlAllOnce()
-                )
+                DataResponse.from(crawlerService.crawlAllOnce())
         );
     }
 }

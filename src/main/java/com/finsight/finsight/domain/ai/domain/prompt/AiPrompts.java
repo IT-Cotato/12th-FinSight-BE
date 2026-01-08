@@ -1,0 +1,163 @@
+package com.finsight.finsight.domain.ai.domain.prompt;
+
+import java.time.LocalDateTime;
+
+public class AiPrompts {
+
+    /**
+     * 공통 시스템 프롬프트
+     * - 투자/정치 편향 최소화
+     * - 추측 금지(제공 텍스트 근거)
+     * - JSON 스키마 강제
+     */
+    public static final String COMMON_SYSTEM = """
+        당신은 경제 뉴스 편집자이자 학습용 요약/퀴즈 생성기입니다.
+        출력은 반드시 한국어로 작성합니다.
+        제공된 기사 본문/요약문에 근거해서만 작성합니다. (추측/단정/허위 수치 금지)
+        투자 유도/매매 조언/정치적 편향은 금지합니다. (중립적인 정보 정리만)
+        반드시 지정된 JSON 스키마에 정확히 맞춰 응답합니다.
+        """;
+
+    /**
+     * SUMMARY
+     * - summary3: "사건/이유/영향" 3줄(총 100자 안팎)
+     * - summaryFull: 학습용 본문 요약(배경–논쟁–전망, 8문장 안팎, ~습니다체)
+     * - 마크업/하이라이트 금지(프론트에서 term 기반으로 하이라이트 처리)
+     */
+    public static String summaryUser(String title, String press, LocalDateTime publishedAt, String content) {
+        return """
+            [기사 정보]
+            - 제목: %s
+            - 언론사: %s
+            - 발행시각: %s
+
+            [기사 본문]
+            %s
+
+            [요구사항 - JSON]
+            1) summary3 (배열 3개 고정)
+               - 1줄: 사건(무슨 일이 있었나)
+               - 2줄: 이유/배경(왜 그런가)
+               - 3줄: 영향/전망(무엇이 달라지나)
+               - 3줄 전체 분량은 "총 100자 안팎"으로 간결하게 (대략 90~130자)
+               - 각 줄은 문장 1개로, 과장/추측 없이 기사에 나온 사실 중심
+               - 용어 하이라이트/괄호 설명/마크업 금지
+
+            2) summaryFull (문자열)
+               - 학습용 본문 요약: 배경 → 논쟁/핵심 주장 → 전망 흐름
+               - 8문장 안팎(권장 7~9문장), 반드시 "~습니다" 체
+               - 5W1H(누가/언제/어디서/무엇을/왜/어떻게)와 수치/사실이 있으면 포함
+               - 기사에 없는 내용 추가 금지, 투자 조언/단정 금지
+               - 마크업/하이라이트/불릿 금지(순수 텍스트)
+            """.formatted(safe(title), safe(press), safeDateTime(publishedAt), safe(content));
+    }
+
+    /**
+     * TERM_CARDS
+     * - summaryFull 기반 3개 용어 추출
+     * - highlightText는 summaryFull에 "실제로 존재하는" 문장/구절 그대로
+     * - definition은 "일반적으로 통용되는 의미" + 경제/금융 문맥 우선
+     * - 기사/사건/기업에 종속된 정의 금지
+     * - 말투: "~이에요/~예요" (친근하지만 사전식)
+     */
+    public static String termCardsUser(String summaryFull) {
+        return """
+            [전체 요약문(summaryFull)]
+            %s
+
+            [요구사항 - JSON]
+            - 핵심 용어/개념 3개를 cards로 반환합니다. (정확히 3개)
+            - term: 용어(짧게, 중복 금지)
+            - highlightText:
+              * 위 전체 요약문에서 해당 term이 실제로 등장하는 "문장/구절 1개"를 그대로 인용
+              * 반드시 원문(summaryFull)에 존재하는 텍스트여야 함 (임의 생성 금지)
+            - definition:
+              * "일반적으로 통용되는 의미"로 2~3문장 설명
+              * 말투는 친근하게 "~이에요/~예요" 체
+              * 기사에만 맞춘 정의(특정 기업/사건/수치/이번 기사에서만 성립)는 금지
+                - 금지 예: "이번 기사에서 A기업이..." / "이번 발표에서..." / "해당 인물이..."
+              * 동일 단어가 여러 의미면 "경제/금융 문맥"에서 통용되는 의미를 우선 선택
+              * 과한 전문용어는 피하고, 꼭 필요하면 괄호로 짧게 풀이 (예: 변동성(가격 출렁임))
+            """.formatted(safe(summaryFull));
+    }
+
+    /**
+     * INSIGHT
+     * - 금융 초보자용, 카테고리 영향 + 생활/습관 조언
+     * - 짧고 친근한 문장(15~25자 정도)
+     * - 2인칭(당신/여러분)보다 3인칭(사회 초년생에게는...) 선호
+     * - 정치/투자 편향 최소화
+     *
+     * ※ 스키마가 기존(oneLineTakeaway/keyInsights/watchPoints/possibleImpacts)을 유지한다면,
+     *    각 항목을 "짧은 문장"으로 맞춰주면 됨.
+     */
+    public static String insightUser(String summaryFull) {
+        return """
+            [전체 요약문(summaryFull)]
+            %s
+
+            [요구사항 - JSON]
+            - 톤: 금융 초보자용, 친근하고 짧게
+            - 정치/투자 편향 최소화(매매/종목 추천 금지)
+            - 문장 길이: 각 문장은 15~25자 정도로 짧게
+            - 어휘: 어려운 전문용어는 피하고, 필요하면 괄호로 짧게 설명
+            - 2인칭("당신/여러분") 대신 3인칭 표현 선호
+              (예: "사회 초년생에게는", "대출이 있는 사람에게는")
+
+            필드별 가이드:
+            1) oneLineTakeaway: 이 뉴스의 핵심을 한 문장으로
+            2) keyInsights: 3개 (각 1문장)
+               - "이 뉴스는 ○○(금리/물가/주택/주가)에 대한 이야기" 같은 카테고리 규정 포함
+               - 특정 집단(사회 초년생/대출 보유자/자영업자 등) 영향 1개 이상 포함
+               - 마지막은 생활/습관 조언 성격이면 좋음(예: 예산 점검, 정보 확인 습관)
+            3) watchPoints: 3개 (각 1문장) — 앞으로 체크할 지표/이벤트
+            4) possibleImpacts: 2개 (각 1문장) — 시장/가계/산업 영향(중립적으로)
+            """.formatted(safe(summaryFull));
+    }
+
+    /**
+     * QUIZ_CONTENT
+     * - summaryFull 기반 내용 퀴즈 3문항
+     * - 근거로 판별 가능해야 함(헷갈리게만 만들지 않기)
+     */
+    public static String quizContentUser(String summaryFull) {
+        return """
+            [전체 요약문(summaryFull)]
+            %s
+
+            [요구사항 - JSON]
+            - 4지선다 퀴즈 3문항 생성(내용 이해 확인)
+            - question: 요약문 근거로 답할 수 있는 질문
+            - choices: 보기 4개(그럴듯하지만 정답은 1개로 명확)
+            - answerIndex: 정답 인덱스(0~3)
+            - explanation: 정답 근거를 요약문 내용으로 1~2문장
+            - 투자/정치 편향, 과한 단정 금지
+            """.formatted(safe(summaryFull));
+    }
+
+    /**
+     * QUIZ_TERM
+     * - term cards 기반 용어 퀴즈 3문항
+     */
+    public static String quizTermUser(String termCardsText) {
+        return """
+            [용어 카드]
+            %s
+
+            [요구사항 - JSON]
+            - 위 용어 카드 기반으로 4지선다 퀴즈 3문항 생성(용어 의미/용례)
+            - question: 용어 의미/맥락을 묻는 질문
+            - choices: 보기 4개(정답 1개)
+            - answerIndex(0~3), explanation 포함
+            - 과한 전문용어/투자 유도 금지
+            """.formatted(safe(termCardsText));
+    }
+
+    private static String safe(String s) {
+        return (s == null) ? "" : s;
+    }
+
+    private static String safeDateTime(LocalDateTime t) {
+        return (t == null) ? "null" : t.toString();
+    }
+}

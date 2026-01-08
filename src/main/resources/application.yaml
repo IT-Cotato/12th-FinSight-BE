@@ -49,3 +49,31 @@ naver:
     sleep-max-ms: 700
     user-agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome Safari"
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+
+openai:
+  api-key: ${OPENAI_API_KEY}
+  base-url: https://api.openai.com/v1
+  model: gpt-4o-mini
+  timeout-ms: 20000
+  max-output-tokens: 900
+  temperature: 0.2
+
+ai:
+  worker:
+    enabled: true
+    cron: "*/30 * * * * *"     # 30초마다
+    batch-size: 5              # 한번에 5개 claim
+  retry:
+    max-attempts: 5
+    base-delay-seconds: 20
+    max-delay-seconds: 600
+
+

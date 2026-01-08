@@ -57,11 +57,33 @@ jobs:
         run: |
           scp -i ~/.ssh/id_rsa finsight.jar ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USERNAME }}/finsight.jar
 
+      # 모니터링
+      - name: Upload observability configs to EC2
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "mkdir -p /home/${{ secrets.EC2_USERNAME }}/infra"
+          scp -i ~/.ssh/id_rsa -r infra/observability \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USERNAME }}/infra/observability
+
       - name: Restart app on EC2 (with OCI Oracle env)
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
+            
+            # ---------- Run/Keep Prometheus+Grafana up ----------
+            cd /home/${{ secrets.EC2_USERNAME }}/infra/observability
 
+            # docker compose 명령 호환 처리
+            if docker compose version >/dev/null 2>&1; then
+              DC="docker compose"
+            elif docker-compose version >/dev/null 2>&1; then
+              DC="docker-compose"
+            else
+              echo "[ERROR] docker compose not found. Install docker + docker compose plugin on EC2 first."
+              exit 1
+            fi
+
+            $DC up -d --remove-orphans
+          
             # 1) Stop previous app (if running)
             pgrep -f 'finsight.jar' && pkill -f 'finsight.jar' || true
 
