@@ -215,7 +215,7 @@ public class NaverCrawlerService {
                     }
 
                     NaverArticleEntity entity = NaverArticleEntity.builder()
-                            .category(sectionName)
+                            .section(section)
                             .oid(id.oid)
                             .aid(id.aid)
                             .url(articleUrl)

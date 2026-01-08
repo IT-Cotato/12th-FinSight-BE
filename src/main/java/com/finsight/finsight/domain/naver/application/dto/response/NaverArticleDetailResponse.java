@@ -17,7 +17,7 @@ public record NaverArticleDetailResponse(
     public static NaverArticleDetailResponse from(NaverArticleEntity a) {
         return new NaverArticleDetailResponse(
                 a.getId(),
-                a.getCategory(),
+                a.getSection().getDisplayName(),
                 a.getUrl(),
                 a.getTitle(),
                 a.getPress(),

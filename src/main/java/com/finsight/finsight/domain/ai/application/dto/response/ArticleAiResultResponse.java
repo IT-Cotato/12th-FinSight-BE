@@ -30,7 +30,7 @@ public record ArticleAiResultResponse(
     ) {
         return new ArticleAiResultResponse(
                 article.getId(),
-                article.getCategory(),
+                article.getSection().getDisplayName(),
                 article.getTitle(),
                 article.getPress(),
                 article.getPublishedAt(),
