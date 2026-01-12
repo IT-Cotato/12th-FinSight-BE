@@ -41,6 +41,7 @@ kakao:
 
 naver:
   crawler:
+    enabled: false              # 일단 크롤링 꺼놓기
     cron: "0 */5 * * * *"       # 5분마다
     max-pages: 2                # 각 탭 최신 2페이지까지만
     stop-after-seen-streak: 8   # 이미 저장된 기사 연속 8개면 종료
@@ -68,7 +69,7 @@ openai:
 
 ai:
   worker:
-    enabled: true
+    enabled: false             # 일단 AI 꺼놓기
     cron: "*/30 * * * * *"     # 30초마다
     batch-size: 5              # 한번에 5개 claim
   retry:
