@@ -1,7 +1,6 @@
-package com.finsight.finsight.domain.ai.application.controller;
+package com.finsight.finsight.domain.ai.presentation;
 
 import com.finsight.finsight.domain.ai.application.dto.response.ArticleAiResultResponse;
-import com.finsight.finsight.domain.ai.application.dto.response.ArticleAiStatusResponse;
 import com.finsight.finsight.domain.ai.domain.service.ArticleAiQueryService;
 import com.finsight.finsight.global.response.DataResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-@RequestMapping("/api/v1/naver/articles")
+@RequestMapping("/api/naver/articles")
 public class ArticleAiQueryController {
 
     private final ArticleAiQueryService articleAiQueryService;

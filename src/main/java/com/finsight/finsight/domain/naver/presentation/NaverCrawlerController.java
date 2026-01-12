@@ -3,7 +3,6 @@ package com.finsight.finsight.domain.naver.presentation;
 import com.finsight.finsight.domain.naver.application.dto.response.NaverCrawlResultResponse;
 import com.finsight.finsight.domain.naver.domain.service.NaverCrawlerService;
 import com.finsight.finsight.global.response.DataResponse;
-import com.finsight.finsight.global.response.DefaultIdResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.AccessLevel;
