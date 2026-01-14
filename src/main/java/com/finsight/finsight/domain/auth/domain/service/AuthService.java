@@ -40,6 +40,8 @@ public class AuthService {
 
     // 회원가입 닉네임 중복 확인
     public void checkNickname(String nickname) {
+        validateNicknameFormat(nickname);
+
         if (userRepository.existsByNickname(nickname)) {
             throw new AuthException(AuthErrorCode.DUPLICATE_NICKNAME);
         }
@@ -51,6 +53,8 @@ public class AuthService {
     - DB 저장 후 메일 발송
      */
     public void sendCode(String email) {
+        validateEmailFormat(email);
+
         if (userAuthRepository.existsByIdentifier(email)) {
             throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
         }
@@ -92,6 +96,10 @@ public class AuthService {
     - 닉네임 중복 확인
      */
     public void signup(SignupRequest request) {
+        validateEmailFormat(request.email());
+        validatePasswordFormat(request.password());
+        validateNicknameFormat(request.nickname());
+
         if (userRepository.existsByNickname(request.nickname())) {
             throw new AuthException(AuthErrorCode.DUPLICATE_NICKNAME);
         }
@@ -120,6 +128,8 @@ public class AuthService {
     - Refresh 토큰 DB 저장
      */
     public TokenResponse login(LoginRequest request) {
+        validateEmailFormat(request.email());
+
         UserAuthEntity userAuth = userAuthRepository
                 .findByIdentifierAndAuthType(request.email(), AuthType.EMAIL)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
@@ -213,6 +223,8 @@ public class AuthService {
     - User, UserAuth 생성
      */
     public TokenResponse kakaoSignup(String kakaoId, String nickname) {
+        validateNicknameFormat(nickname);
+
         if (userRepository.existsByNickname(nickname)) {
             throw new AuthException(AuthErrorCode.DUPLICATE_NICKNAME);
         }
@@ -242,5 +254,28 @@ public class AuthService {
         userAuth.updateRefreshToken(refreshToken, LocalDateTime.now().plusDays(30));
 
         return new TokenResponse(accessToken, refreshToken);
+    }
+
+    // 닉네임 형식 검증 (1-10자)
+    private void validateNicknameFormat(String nickname) {
+        if (nickname.length() < 1 || nickname.length() > 10) {
+            throw new AuthException(AuthErrorCode.INVALID_NICKNAME_FORMAT);
+        }
+    }
+
+    // 이메일 형식 검증
+    private void validateEmailFormat(String email) {
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+        if (!email.matches(emailRegex)) {
+            throw new AuthException(AuthErrorCode.INVALID_EMAIL_FORMAT);
+        }
+    }
+
+    // 비밀번호 형식 검증 (영문+숫자 6-18자)
+    private void validatePasswordFormat(String password) {
+        String passwordRegex = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{6,18}$";
+        if (!password.matches(passwordRegex)) {
+            throw new AuthException(AuthErrorCode.INVALID_PASSWORD_FORMAT);
+        }
     }
 }
