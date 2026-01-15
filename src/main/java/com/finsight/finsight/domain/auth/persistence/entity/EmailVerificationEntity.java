@@ -50,4 +50,8 @@ public class EmailVerificationEntity {
     public void verify() {
         this.isVerified = 'Y';
     }
+
+    public boolean isVerified() {
+        return this.isVerified == 'Y';
+    }
 }

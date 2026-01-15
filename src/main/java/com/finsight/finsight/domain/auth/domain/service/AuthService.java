@@ -93,12 +93,26 @@ public class AuthService {
 
     /*
     회원가입 처리
+    - 이메일 인증 여부 확인
     - 닉네임 중복 확인
      */
     public void signup(SignupRequest request) {
         validateEmailFormat(request.email());
         validatePasswordFormat(request.password());
         validateNicknameFormat(request.nickname());
+
+        // 이메일 인증 여부 확인
+        EmailVerificationEntity verification = emailVerificationRepository
+                .findTopByEmailOrderByCreatedAtDesc(request.email())
+                .orElseThrow(() -> new AuthException(AuthErrorCode.EMAIL_NOT_VERIFIED));
+
+        if (!verification.isVerified()) {
+            throw new AuthException(AuthErrorCode.EMAIL_NOT_VERIFIED);
+        }
+
+        if (userAuthRepository.existsByIdentifier(request.email())) {
+            throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
+        }
 
         if (userRepository.existsByNickname(request.nickname())) {
             throw new AuthException(AuthErrorCode.DUPLICATE_NICKNAME);
@@ -111,7 +125,7 @@ public class AuthService {
         userRepository.save(user);
 
         UserAuthEntity userAuth = UserAuthEntity.builder()
-                .userId(user.getUserId())
+                .user(user)
                 .identifier(request.email())
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .authType(AuthType.EMAIL)
@@ -208,9 +222,10 @@ public class AuthService {
         }
 
         UserAuthEntity userAuth = existingUser.get();
+        Long userId = userAuth.getUser().getUserId();
 
-        String accessToken = jwtUtil.createAccessToken(kakaoId);
-        String refreshToken = jwtUtil.createRefreshToken(kakaoId);
+        String accessToken = jwtUtil.createAccessToken(String.valueOf(userId));
+        String refreshToken = jwtUtil.createRefreshToken(String.valueOf(userId));
 
         userAuth.updateRefreshToken(refreshToken, LocalDateTime.now().plusDays(30));
 
@@ -240,7 +255,7 @@ public class AuthService {
         userRepository.save(user);
 
         UserAuthEntity userAuth = UserAuthEntity.builder()
-                .userId(user.getUserId())
+                .user(user)
                 .identifier(kakaoId)
                 .passwordHash(null)
                 .authType(AuthType.KAKAO)
@@ -248,8 +263,8 @@ public class AuthService {
 
         userAuthRepository.save(userAuth);
 
-        String accessToken = jwtUtil.createAccessToken(kakaoId);
-        String refreshToken = jwtUtil.createRefreshToken(kakaoId);
+        String accessToken = jwtUtil.createAccessToken(String.valueOf(user.getUserId()));
+        String refreshToken = jwtUtil.createRefreshToken(String.valueOf(user.getUserId()));
 
         userAuth.updateRefreshToken(refreshToken, LocalDateTime.now().plusDays(30));
 
