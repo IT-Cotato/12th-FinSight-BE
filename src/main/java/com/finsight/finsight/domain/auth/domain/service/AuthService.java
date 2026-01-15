@@ -271,6 +271,61 @@ public class AuthService {
         return new TokenResponse(accessToken, refreshToken);
     }
 
+    /*
+    비밀번호 재설정 - 인증번호 발송
+    - 가입된 이메일인지 확인
+    - 인증번호 발송
+    */
+    public void sendCodeForPasswordReset(String email) {
+        validateEmailFormat(email);
+
+        // 가입된 이메일인지 확인 (회원가입과 반대)
+        if (!userAuthRepository.existsByIdentifier(email)) {
+            throw new AuthException(AuthErrorCode.EMAIL_NOT_FOUND);
+        }
+
+        String code = emailService.generateVerificationCode();
+
+        EmailVerificationEntity verification = EmailVerificationEntity.builder()
+                .email(email)
+                .verificationCode(code)
+                .build();
+
+        emailVerificationRepository.save(verification);
+        emailService.sendVerificationEmail(email, code);
+    }
+
+    /*
+    비밀번호 재설정
+    - 이메일 인증 여부 확인
+    - 새 비밀번호 형식 검증
+    - 비밀번호 업데이트
+     */
+    public void resetPassword(String email, String newPassword) {
+        validateEmailFormat(email);
+        validatePasswordFormat(newPassword);
+
+        // 이메일 인증 여부 확인
+        EmailVerificationEntity verification = emailVerificationRepository
+                .findTopByEmailOrderByCreatedAtDesc(email)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.EMAIL_NOT_VERIFIED));
+
+        if (!verification.isVerified()) {
+            throw new AuthException(AuthErrorCode.EMAIL_NOT_VERIFIED);
+        }
+
+        // 사용자 찾기
+        UserAuthEntity userAuth = userAuthRepository
+                .findByIdentifierAndAuthType(email, AuthType.EMAIL)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+
+        // 비밀번호 업데이트
+        userAuth.updatePassword(passwordEncoder.encode(newPassword));
+
+        // 인증 기록 삭제
+        emailVerificationRepository.deleteByEmail(email);
+    }
+
     // 닉네임 형식 검증 (1-10자)
     private void validateNicknameFormat(String nickname) {
         if (nickname.length() < 1 || nickname.length() > 10) {

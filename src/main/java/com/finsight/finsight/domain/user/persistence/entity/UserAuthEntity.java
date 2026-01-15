@@ -72,6 +72,11 @@ public class UserAuthEntity {
         this.updatedAt = LocalDateTime.now();
     }
 
+    public void updatePassword(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     @PreUpdate
     protected void updateTimestamp() {
         this.updatedAt = LocalDateTime.now();
