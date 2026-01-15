@@ -62,6 +62,14 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl{
             builder.and(cursorPredicate(naverArticleEntity, sort, cursor));
         }
 
+        // 3) 용어 카드 3개 이상 조건
+        QAiTermCardEntity qAiTermCardEntity = QAiTermCardEntity.aiTermCardEntity;
+        builder.and(naverArticleEntity.id.in(
+                JPAExpressions.select(qAiTermCardEntity.article.id)
+                        .from(qAiTermCardEntity)
+                        .groupBy(qAiTermCardEntity.article.id)
+                        .having(qAiTermCardEntity.count().goe(3L))));
+
         return builder;
     }
 
