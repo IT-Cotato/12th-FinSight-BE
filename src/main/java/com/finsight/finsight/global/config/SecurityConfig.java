@@ -42,7 +42,7 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/api/v1/naver/**",
+                                "/api/naver/**",
                                 "/api/examples"
                         ).permitAll()
                         .anyRequest().authenticated()
