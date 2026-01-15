@@ -26,6 +26,7 @@ jobs:
           printf '%s' "${{ secrets.APPLICATION_YML }}" > src/main/resources/application.yml
           # Windows CRLF 방지
           sed -i 's/\r$//' src/main/resources/application.yml
+      
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
@@ -58,6 +59,22 @@ jobs:
       - name: Upload jar to EC2
         run: |
           scp -i ~/.ssh/id_rsa finsight.jar ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USERNAME }}/finsight.jar
+
+      - name: Upload application.yml to EC2 (/etc/finsight)
+        run: |
+          # 1) Runner에서 생성된 파일을 EC2 홈으로 먼저 업로드
+          scp -i ~/.ssh/id_rsa src/main/resources/application.yml \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USERNAME }}/application.yml
+
+          # 2) sudo로 /etc로 이동
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            sudo mkdir -p /etc/finsight
+            sudo mv /home/${{ secrets.EC2_USERNAME }}/application.yml /etc/finsight/application.yml
+            sudo chmod 600 /etc/finsight/application.yml
+            sudo chown root:root /etc/finsight/application.yml
+            echo "[OK] deployed /etc/finsight/application.yml"
+          EOF
 
       # 모니터링
       - name: Upload observability configs to EC2
