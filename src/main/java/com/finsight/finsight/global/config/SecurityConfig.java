@@ -4,6 +4,7 @@ import com.finsight.finsight.global.security.JwtFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -39,6 +40,11 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // 프리플라이트 통과
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // 헬스체크 열기
+                        .requestMatchers("/actuator/health").permitAll()
+
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/swagger-ui/**",
