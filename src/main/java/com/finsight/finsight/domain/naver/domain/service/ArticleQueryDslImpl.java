@@ -6,9 +6,11 @@ import com.finsight.finsight.domain.learning.domain.service.CursorParser;
 import com.finsight.finsight.domain.naver.domain.constant.NaverEconomySection;
 import com.finsight.finsight.domain.naver.persistence.entity.NaverArticleEntity;
 import com.finsight.finsight.domain.naver.persistence.entity.QNaverArticleEntity;
+import com.finsight.finsight.domain.ai.persistence.entity.QAiTermCardEntity;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Predicate;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -83,10 +85,8 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl{
 
             //TODO: view count 속성이 추가되면 인기순 로직 구현
             case POPULARITY -> (
-                    naverArticleEntity.publishedAt.lt(cursor.lastPublishedAt())
-                            .or(naverArticleEntity.publishedAt.eq(cursor.lastPublishedAt()).and(naverArticleEntity.id.lt(cursor.lastId())))
-//                    naverArticleEntity.viewCount.lt(cursor.viewCount())
-//                            .or(naverArticleEntity.viewCount.eq(cursor.viewCount()).and(naverArticleEntity.id.lt(cursor.lastId())))
+                    naverArticleEntity.viewCount.lt(cursor.viewCount())
+                            .or(naverArticleEntity.viewCount.eq(cursor.viewCount()).and(naverArticleEntity.id.lt(cursor.lastId())))
             );
         };
     }
@@ -99,8 +99,8 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl{
                     naverArticleEntity.id.desc()
             };
             case POPULARITY -> new OrderSpecifier<?>[]{
-//                    a.viewCount.desc(),
-//                    a.id.desc()
+                    naverArticleEntity.viewCount.desc(),
+                    naverArticleEntity.id.desc()
             };
         };
     }

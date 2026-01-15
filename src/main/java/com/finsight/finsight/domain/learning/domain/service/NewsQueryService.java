@@ -54,8 +54,7 @@ public class NewsQueryService {
                 // 최신순일 때는 publishedAt과 id가 중요
                 nextCursor = cursorParser.encode(last.getPublishedAt(), null, last.getId());
             } else if (sort == SortType.POPULARITY) {
-                // TODO: 추후 viewCount 컬럼 생성 시 last.getViewCount()로 교체
-                nextCursor = cursorParser.encode(null, 0L, last.getId());
+                nextCursor = cursorParser.encode(null, last.getViewCount(), last.getId());
             }
         }
 
