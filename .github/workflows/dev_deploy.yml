@@ -20,10 +20,12 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Create application.yml from Secret
+      - name: Create application.yml from Secret (safe)
         run: |
           mkdir -p src/main/resources
-          echo "${{ secrets.APPLICATION_YML }}" > src/main/resources/application.yml
+          printf '%s' "${{ secrets.APPLICATION_YML }}" > src/main/resources/application.yml
+          # Windows CRLF 방지
+          sed -i 's/\r$//' src/main/resources/application.yml
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
@@ -92,8 +94,10 @@ jobs:
             export DB_USERNAME='${{ secrets.DB_USERNAME }}'
             export DB_PASSWORD='${{ secrets.DB_PASSWORD }}'
 
-            # 3) Run new app
-            nohup java -jar /home/${{ secrets.EC2_USERNAME }}/finsight.jar > /home/${{ secrets.EC2_USERNAME }}/app.log 2>&1 &
+            # 3) Run new app (use external YAML)
+            nohup java -jar /home/${{ secrets.EC2_USERNAME }}/finsight.jar \
+              --spring.config.location=file:/etc/finsight/application.yml \
+              > /home/${{ secrets.EC2_USERNAME }}/app.log 2>&1 &
 
             # 4) Show last logs
             sleep 2
