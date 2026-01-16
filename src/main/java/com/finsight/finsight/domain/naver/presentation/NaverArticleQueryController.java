@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-@RequestMapping("/api/v1/naver/articles")
+@RequestMapping("/api/naver/articles")
 public class NaverArticleQueryController {
 
     private final NaverArticleQueryService naverArticleQueryService;

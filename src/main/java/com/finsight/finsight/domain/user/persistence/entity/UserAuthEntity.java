@@ -20,8 +20,9 @@ public class UserAuthEntity {
     @Column(name = "auth_id")
     private Long authId;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name ="user_id", nullable = false)
+    private UserEntity user;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "auth_type", nullable = false)
@@ -49,8 +50,8 @@ public class UserAuthEntity {
     private LocalDateTime updatedAt;
 
     @Builder
-    public UserAuthEntity(Long userId, String identifier, String passwordHash, AuthType authType) {
-        this.userId = userId;
+    public UserAuthEntity(UserEntity user, String identifier, String passwordHash, AuthType authType) {
+        this.user = user;
         this.authType = authType;
         this.identifier = identifier;
         this.passwordHash = passwordHash;
@@ -68,6 +69,11 @@ public class UserAuthEntity {
     public void clearRefreshToken() {
         this.refreshToken = null;
         this.refreshTokenExpiresAt = null;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updatePassword(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
         this.updatedAt = LocalDateTime.now();
     }
 
