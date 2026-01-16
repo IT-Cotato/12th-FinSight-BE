@@ -20,10 +20,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/categories")
+@RequestMapping("/api/users/categories")
 @RequiredArgsConstructor
 @Tag(name = "Category", description = "관심분야 카테고리 API")
-public class CategoryController {
+public class InterestCategoryController {
 
     private final CategoryService categoryService;
 
