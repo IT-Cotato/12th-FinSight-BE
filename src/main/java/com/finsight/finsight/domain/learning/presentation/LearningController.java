@@ -50,7 +50,10 @@ public class LearningController {
                 DataResponse.from(newsQueryService.getNewsList(category, finalSort, size, cursor)));
     }
 
-    @Operation(summary = "상세 뉴스 조회", description = "뉴스를 클릭했을 때 조회수를 증가시키고 상세 뉴스(뉴스 카테고리, 핵심 용어 3개, 제목/날짜(시간), 3줄 요약, 본문 요약(전체 요약), 인사이트)를 제공합니다.")
+    @Operation(summary = "상세 뉴스 조회 API", description = "뉴스를 클릭했을 때 조회수를 증가시키고 상세 뉴스(뉴스 카테고리, 핵심 용어 3개, 제목/날짜(시간), 3줄 요약, 본문 요약(전체 요약), 인사이트)를 제공합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "상세 뉴스 조회 성공")
+    })
     @GetMapping("/{newsId}")
     public ResponseEntity<DataResponse<LearningResponseDTO.NewsDetailResponse>> getNews(@PathVariable Long newsId) {
         // 조회수 증가
@@ -58,5 +61,19 @@ public class LearningController {
 
         return ResponseEntity.ok(
                 DataResponse.from(newsQueryService.getNewsDetails(newsId)));
+    }
+
+    @Operation(summary = "뉴스 검색 API", description = "뉴스 제목, 용어, 내용 요약, 3줄 요약에서 검색어를 통한 검색한 뉴스 목록을 반환합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "상세 뉴스 조회 성공")
+    })
+    @GetMapping("/search")
+    public ResponseEntity<DataResponse<LearningResponseDTO.NewListResponse>> searchNewsList(
+            @RequestParam(name = "q") String query, // 한 글자 이상의 검색어
+            @RequestParam(name = "cursor", required = false) String cursor,
+            @RequestParam(name = "size", defaultValue = "4") int size
+    ){
+        return ResponseEntity.ok(
+                DataResponse.from(newsQueryService.searchNews(query, SortType.LATEST, size, cursor)));
     }
 }

@@ -15,6 +15,7 @@ public interface ArticleQueryDsl {
             Category category,
             SortType sort,
             int size,
-            CursorParser.NewsCursor cursor
+            CursorParser.NewsCursor cursor,
+            String keyword
     );
 }

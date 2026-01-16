@@ -37,14 +37,25 @@ public class NewsQueryService {
     private final AiArticleSummaryRepository aiArticleSummaryRepository;
     private final LearningConverter learningConverter;
 
-    // 뉴스 목록 반환
-    public LearningResponseDTO.NewListResponse getNewsList(Category category, SortType sort, int size,
-            String cursorStr) {
+
+    // 일반 뉴스 리스트 조회
+    public LearningResponseDTO.NewListResponse getNewsList(Category category, SortType sort, int size, String cursorStr) {
+        return getProcessedNewsResponse(category, sort, size, cursorStr, null);
+    }
+
+    // 검색 뉴스 리스트 조회
+    public LearningResponseDTO.NewListResponse searchNews(String keyword, SortType sort, int size, String cursorStr) {
+        return getProcessedNewsResponse(Category.ALL, sort, size, cursorStr, keyword);
+    }
+
+    // 뉴스 리스트 반환 프로세스
+    public LearningResponseDTO.NewListResponse getProcessedNewsResponse(Category category, SortType sort, int size,
+            String cursorStr, String keyword) {
         // 1. 커서 디코딩
         CursorParser.NewsCursor cursor = cursorParser.decode(cursorStr);
 
         // 2. 리포지토리 조회 (size+1)
-        List<NaverArticleEntity> articles = naverArticleRepository.findNewsByCondition(category, sort, size, cursor);
+        List<NaverArticleEntity> articles = naverArticleRepository.findNewsByCondition(category, sort, size, cursor, keyword);
 
         // 3. hasNext / content
         boolean hasNext = articles.size() > size;
@@ -73,6 +84,7 @@ public class NewsQueryService {
         return learningConverter.toNewListResponse(content, articleTermMap, category, sort, size, hasNext, nextCursor);
     }
 
+    // 상세 뉴스 반환
     public LearningResponseDTO.NewsDetailResponse getNewsDetails(Long newsId) {
         NaverArticleEntity article = naverArticleRepository.findById(newsId)
                 .orElseThrow(() -> new NaverArticleException(NaverArticleErrorCode.NAVER_ARTICLE_NOT_FOUND));
