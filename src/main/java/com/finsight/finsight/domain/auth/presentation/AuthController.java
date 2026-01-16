@@ -85,4 +85,19 @@ public class AuthController {
         return DataResponse.from(response);
     }
 
+    @PostMapping("/password/send-code")
+    @Operation(summary = "비밀번호 재설정 인증번호 발송")
+    public DataResponse<Void> sendCodeForPasswordReset(@Valid @RequestBody SendCodeRequest request) {
+        authService.sendCodeForPasswordReset(request.email());
+        return DataResponse.ok();
+    }
+
+    @PostMapping("/password/reset")
+    @Operation(summary = "비밀번호 재설정")
+    public DataResponse<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.email(), request.newPassword());
+        return DataResponse.ok();
+    }
+
+
 }

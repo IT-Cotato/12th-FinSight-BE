@@ -28,7 +28,9 @@ public enum AuthErrorCode implements BaseErrorCode {
     PASSWORD_REQUIRED(HttpStatus.BAD_REQUEST, "비밀번호는 필수 입력값입니다.", "AUTH-017"),
     VERIFICATION_CODE_REQUIRED(HttpStatus.BAD_REQUEST, "인증번호는 필수 입력값입니다.", "AUTH-018"),
     KAKAO_ID_REQUIRED(HttpStatus.BAD_REQUEST, "카카오 ID는 필수 입력값입니다.", "AUTH-019"),
-    EMAIL_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "이메일 인증이 필요합니다.", "AUTH-020")
+    EMAIL_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "이메일 인증이 필요합니다.", "AUTH-020"),
+    EMAIL_NOT_FOUND(HttpStatus.BAD_REQUEST, "가입하지 않은 이메일입니다.", "AUTH-021")
+
     ;
 
     private final HttpStatus httpStatus;
