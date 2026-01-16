@@ -11,10 +11,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Table(
-        name = "naver_article",
-        uniqueConstraints = @UniqueConstraint(name = "uk_naver_oid_aid", columnNames = {"oid", "aid"})
-)
+@Table(name = "naver_article", uniqueConstraints = @UniqueConstraint(name = "uk_naver_oid_aid", columnNames = { "oid",
+        "aid" }))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class NaverArticleEntity {
 
@@ -55,10 +53,17 @@ public class NaverArticleEntity {
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
 
+    @Column(name = "view_count", nullable = false)
+    private Long viewCount = 0L;
+
+    public void increaseViewCount(long count) {
+        this.viewCount += count;
+    }
+
     @Builder
     public NaverArticleEntity(NaverEconomySection section, String oid, String aid, String url,
-                              String title, String press, LocalDateTime publishedAt,
-                              String content, LocalDateTime collectedAt, String thumbnailUrl) {
+            String title, String press, LocalDateTime publishedAt,
+            String content, LocalDateTime collectedAt, String thumbnailUrl) {
         this.section = section;
         this.oid = oid;
         this.aid = aid;
@@ -69,6 +74,6 @@ public class NaverArticleEntity {
         this.content = content;
         this.collectedAt = collectedAt;
         this.thumbnailUrl = thumbnailUrl;
+        this.viewCount = 0L;
     }
 }
-

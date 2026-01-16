@@ -11,4 +11,6 @@ public interface AiArticleSummaryRepository extends JpaRepository<AiArticleSumma
     boolean existsByJobId(Long jobId);
     Optional<AiArticleSummaryEntity> findByJobId(Long jobId);
     Optional<AiArticleSummaryEntity> findTopByArticleIdAndJobStatusOrderByCreatedAtDesc(Long articleId, AiJobStatus status);
+
+    Optional<AiArticleSummaryEntity> findByArticleId(Long newsId);
 }

@@ -38,3 +38,6 @@ out/
 
 ### Local configuration ###
 src/main/resources/application-local.yml
+
+# QueryDSL 생성 파일 제외
+/src/main/generated/
