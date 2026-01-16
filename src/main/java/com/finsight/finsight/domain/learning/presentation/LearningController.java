@@ -50,10 +50,13 @@ public class LearningController {
                 DataResponse.from(newsQueryService.getNewsList(category, finalSort, size, cursor)));
     }
 
-    @Operation(summary = "뉴스 조회수 증가", description = "뉴스를 클릭했을 때 조회수를 증가시킵니다.")
-    @GetMapping("/{newsId}/view")
-    public ResponseEntity<Void> increaseViewCount(@PathVariable Long newsId) {
+    @Operation(summary = "상세 뉴스 조회", description = "뉴스를 클릭했을 때 조회수를 증가시키고 상세 뉴스(뉴스 카테고리, 핵심 용어 3개, 제목/날짜(시간), 3줄 요약, 본문 요약(전체 요약), 인사이트)를 제공합니다.")
+    @GetMapping("/{newsId}")
+    public ResponseEntity<DataResponse<LearningResponseDTO.NewsDetailResponse>> getNews(@PathVariable Long newsId) {
+        // 조회수 증가
         articleViewService.incrementViewCount(newsId);
-        return ResponseEntity.ok().build();
+
+        return ResponseEntity.ok(
+                DataResponse.from(newsQueryService.getNewsDetails(newsId)));
     }
 }

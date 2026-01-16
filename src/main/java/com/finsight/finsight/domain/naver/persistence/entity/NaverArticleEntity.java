@@ -53,7 +53,7 @@ public class NaverArticleEntity {
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
 
-    @Column(name = "view_count", nullable = false, columnDefinition = "bigint default 0")
+    @Column(name = "view_count", nullable = false)
     private Long viewCount = 0L;
 
     public void increaseViewCount(long count) {

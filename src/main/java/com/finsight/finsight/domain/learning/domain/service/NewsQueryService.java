@@ -1,9 +1,17 @@
 package com.finsight.finsight.domain.learning.domain.service;
 
+import com.finsight.finsight.domain.ai.persistence.entity.AiArticleInsightEntity;
+import com.finsight.finsight.domain.ai.persistence.entity.AiArticleSummaryEntity;
+import com.finsight.finsight.domain.ai.persistence.repository.AiArticleInsightRepository;
+import com.finsight.finsight.domain.ai.persistence.repository.AiArticleSummaryRepository;
 import com.finsight.finsight.domain.learning.application.dto.response.LearningResponseDTO;
 import com.finsight.finsight.domain.learning.domain.constant.Category;
 import com.finsight.finsight.domain.learning.domain.constant.SortType;
 import com.finsight.finsight.domain.learning.persistence.mapper.LearningConverter;
+import com.finsight.finsight.domain.naver.exception.NaverArticleException;
+import com.finsight.finsight.domain.naver.exception.NaverCrawlException;
+import com.finsight.finsight.domain.naver.exception.code.NaverArticleErrorCode;
+import com.finsight.finsight.domain.naver.exception.code.NaverCrawlErrorCode;
 import com.finsight.finsight.domain.naver.persistence.entity.NaverArticleEntity;
 import com.finsight.finsight.domain.naver.persistence.repository.NaverArticleRepository;
 import com.finsight.finsight.domain.ai.persistence.entity.AiTermCardEntity;
@@ -25,7 +33,11 @@ public class NewsQueryService {
     private final NaverArticleRepository naverArticleRepository;
     private final AiTermCardRepository aiTermCardRepository;
     private final CursorParser cursorParser;
+    private final AiArticleInsightRepository aiArticleInsightRepository;
+    private final AiArticleSummaryRepository aiArticleSummaryRepository;
+    private final LearningConverter learningConverter;
 
+    // 뉴스 목록 반환
     public LearningResponseDTO.NewListResponse getNewsList(Category category, SortType sort, int size,
             String cursorStr) {
         // 1. 커서 디코딩
@@ -58,6 +70,21 @@ public class NewsQueryService {
             }
         }
 
-        return LearningConverter.toNewListResponse(content, articleTermMap, category, sort, size, hasNext, nextCursor);
+        return learningConverter.toNewListResponse(content, articleTermMap, category, sort, size, hasNext, nextCursor);
+    }
+
+    public LearningResponseDTO.NewsDetailResponse getNewsDetails(Long newsId) {
+        NaverArticleEntity article = naverArticleRepository.findById(newsId)
+                .orElseThrow(() -> new NaverArticleException(NaverArticleErrorCode.NAVER_ARTICLE_NOT_FOUND));
+
+        AiArticleInsightEntity insight = aiArticleInsightRepository.findByArticleId(newsId)
+                .orElseThrow(() -> new NaverArticleException(NaverArticleErrorCode.NAVER_ARTICLE_INSIGHT_NOT_FOUND));
+
+        AiArticleSummaryEntity summary = aiArticleSummaryRepository.findByArticleId(newsId)
+                .orElseThrow(() -> new NaverArticleException(NaverArticleErrorCode.NAVER_ARTICLE_SUMMERY_NOT_FOUND));
+
+        List<AiTermCardEntity> terms = aiTermCardRepository.findByArticleIdOrderByCardOrderAsc(newsId);
+
+        return learningConverter.toNewsDetailResponse(article, terms, summary, insight);
     }
 }

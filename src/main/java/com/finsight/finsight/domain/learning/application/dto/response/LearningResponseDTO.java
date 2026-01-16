@@ -36,6 +36,36 @@ public class LearningResponseDTO {
         @Builder
         public record CoreTerm(
                         Long termId,
-                        String term) {
+                        String term,
+                        String description) {
+        }
+
+        // NewsDetailResDTO
+        @Schema(name = "LearningNewsDetailResponse")
+        @Builder
+        public record NewsDetailResponse(
+                        NaverEconomySection category,
+                        List<CoreTerm> coreTerms,
+                        String title,
+                        String date,
+                        Summary3Lines summary3Lines,
+                        String bodySummary,
+                        List<Insight> insights) {
+        }
+
+        @Schema(name = "LearningSummary3Lines")
+        @Builder
+        public record Summary3Lines(
+                        String event,
+                        String reason,
+                        String impact) {
+        }
+
+        @Schema(name = "LearningInsight")
+        @Builder
+        public record Insight(
+                        String title,
+                        String detail,
+                        String whyItMatters) {
         }
 }
