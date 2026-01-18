@@ -235,6 +235,22 @@ public class AiJobEntity {
     }
 
     /**
+     * SUSPENDED → PENDING 전환 (관리자 resume)
+     * - retryCount 초기화
+     * - 에러 정보 유지 (이력 추적용)
+     */
+    public void resume() {
+        if (this.status != AiJobStatus.SUSPENDED) {
+            throw new IllegalStateException("Cannot resume: current status is " + this.status);
+        }
+        this.status = AiJobStatus.PENDING;
+        this.retryCount = 0;
+        this.finishedAt = null;
+        this.nextRunAt = null;
+        this.runningStartedAt = null;
+    }
+
+    /**
      * 지수 백오프로 nextRunAt 계산
      * - 1차: 30초, 2차: 60초, 3차: 120초...
      */

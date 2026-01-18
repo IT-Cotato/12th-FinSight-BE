@@ -56,4 +56,11 @@ public interface AiJobRepository extends JpaRepository<AiJobEntity, Long> {
     @Query("SELECT j FROM AiJobEntity j WHERE j.status = :status AND j.nextRunAt <= :now")
     List<AiJobEntity> findRetryWaitJobsReadyToRun(@Param("status") AiJobStatus status,
                                                    @Param("now") LocalDateTime now);
+
+    /**
+     * SUSPENDED 상태의 Job 중 특정 에러코드 조건으로 조회 (quota/balance 관련)
+     */
+    @Query("SELECT j FROM AiJobEntity j WHERE j.status = :status AND j.lastErrorCode IN :errorCodes")
+    List<AiJobEntity> findSuspendedJobsByErrorCodes(@Param("status") AiJobStatus status,
+                                                     @Param("errorCodes") List<String> errorCodes);
 }

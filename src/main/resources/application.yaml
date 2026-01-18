@@ -68,6 +68,7 @@ openai:
   temperature: 0.2
 
 ai:
+  admin-token: ${AI_ADMIN_TOKEN}
   worker:
     enabled: false             # 일단 AI 꺼놓기
     cron: "*/30 * * * * *"     # 30초마다

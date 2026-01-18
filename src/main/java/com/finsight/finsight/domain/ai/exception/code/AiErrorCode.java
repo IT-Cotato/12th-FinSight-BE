@@ -12,6 +12,10 @@ public enum AiErrorCode implements BaseErrorCode {
     // AI 잡
     AI_JOB_NOT_FOUND(HttpStatus.NOT_FOUND, "AI 작업을 찾을 수 없습니다.", "AI-001"),
     AI_RESULT_NOT_READY(HttpStatus.CONFLICT, "AI 결과 생성이 완료되지 않았습니다.", "AI-004"),
+    AI_JOB_NOT_SUSPENDED(HttpStatus.BAD_REQUEST, "SUSPENDED 상태가 아닌 작업은 재개할 수 없습니다.", "AI-005"),
+
+    // Admin
+    ADMIN_TOKEN_INVALID(HttpStatus.FORBIDDEN, "관리자 토큰이 유효하지 않습니다.", "AI-401"),
 
     // OpenAI - 재시도 가능 (RETRY_WAIT)
     OPENAI_RATE_LIMIT(HttpStatus.TOO_MANY_REQUESTS, "OpenAI 호출 제한에 걸렸습니다.", "AI-002"),
