@@ -48,6 +48,15 @@ public class AiJobEntity {
     @Column(name = "retry_count", nullable = false)
     private int retryCount;
 
+    @Column(name = "max_retries", nullable = false)
+    private int maxRetries = 3;
+
+    @Column(name = "next_run_at")
+    private LocalDateTime nextRunAt;
+
+    @Column(name = "running_started_at")
+    private LocalDateTime runningStartedAt;
+
     @Column(name = "last_error_code", length = 50)
     private String lastErrorCode;
 
@@ -71,6 +80,9 @@ public class AiJobEntity {
                         String promptVersion,
                         String model,
                         int retryCount,
+                        Integer maxRetries,
+                        LocalDateTime nextRunAt,
+                        LocalDateTime runningStartedAt,
                         String lastErrorCode,
                         String lastErrorMessage,
                         LocalDateTime requestedAt,
@@ -82,6 +94,9 @@ public class AiJobEntity {
         this.promptVersion = promptVersion;
         this.model = model;
         this.retryCount = retryCount;
+        this.maxRetries = (maxRetries != null) ? maxRetries : 3;
+        this.nextRunAt = nextRunAt;
+        this.runningStartedAt = runningStartedAt;
         this.lastErrorCode = lastErrorCode;
         this.lastErrorMessage = lastErrorMessage;
         this.requestedAt = requestedAt;
@@ -103,7 +118,10 @@ public class AiJobEntity {
 
     public void markRunning() {
         this.status = AiJobStatus.RUNNING;
-        this.startedAt = LocalDateTime.now();
+        this.runningStartedAt = LocalDateTime.now();
+        if (this.startedAt == null) {
+            this.startedAt = this.runningStartedAt;
+        }
     }
 
     public void markSuccess() {
