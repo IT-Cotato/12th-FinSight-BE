@@ -27,11 +27,19 @@ public class AiMetrics {
     }
 
     public void incProcessed(AiJobType type, String result) {
-        Counter.builder("ai_jobs_processed_total")
+        incProcessed(type, result, null);
+    }
+
+    public void incProcessed(AiJobType type, String result, String errorCode) {
+        Counter.Builder builder = Counter.builder("ai_jobs_processed_total")
                 .tag("type", type.name())
-                .tag("result", result) // success|failed|skipped
-                .register(meterRegistry)
-                .increment();
+                .tag("result", result); // success|failed|retry_wait|suspended
+
+        if (errorCode != null) {
+            builder.tag("error_code", errorCode);
+        }
+
+        builder.register(meterRegistry).increment();
     }
 
     public void incEvent(AiJobType type, String event) {

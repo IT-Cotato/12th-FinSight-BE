@@ -136,5 +136,59 @@ public class AiJobEntity {
         this.retryCount++;
         this.finishedAt = LocalDateTime.now();
     }
+
+    /**
+     * RETRY_WAIT 상태로 전환 (재시도 가능 에러: 429, 5xx, timeout)
+     * - retryCount 증가
+     * - nextRunAt 설정 (지수 백오프)
+     */
+    public void markRetryWait(String errorCode, String errorMessage) {
+        this.status = AiJobStatus.RETRY_WAIT;
+        this.lastErrorCode = errorCode;
+        this.lastErrorMessage = errorMessage;
+        this.retryCount++;
+        this.nextRunAt = calculateNextRunAt();
+        this.runningStartedAt = null;
+    }
+
+    /**
+     * SUSPENDED 상태로 전환 (재시도 불가: 402, insufficient_quota, 401, 403)
+     * - 수동 확인 필요
+     */
+    public void markSuspended(String errorCode, String errorMessage) {
+        this.status = AiJobStatus.SUSPENDED;
+        this.lastErrorCode = errorCode;
+        this.lastErrorMessage = errorMessage;
+        this.finishedAt = LocalDateTime.now();
+        this.runningStartedAt = null;
+    }
+
+    /**
+     * RETRY_WAIT → PENDING 전환 (스위퍼가 호출)
+     */
+    public void markPendingForRetry() {
+        if (this.status != AiJobStatus.RETRY_WAIT) {
+            throw new IllegalStateException("Cannot mark pending: current status is " + this.status);
+        }
+        this.status = AiJobStatus.PENDING;
+        this.nextRunAt = null;
+        this.runningStartedAt = null;
+    }
+
+    /**
+     * 재시도 가능 여부
+     */
+    public boolean canRetry() {
+        return this.retryCount < this.maxRetries;
+    }
+
+    /**
+     * 지수 백오프로 nextRunAt 계산
+     * - 1차: 30초, 2차: 60초, 3차: 120초...
+     */
+    private LocalDateTime calculateNextRunAt() {
+        long delaySeconds = 30L * (1L << Math.min(this.retryCount, 5));
+        return LocalDateTime.now().plusSeconds(delaySeconds);
+    }
 }
 
