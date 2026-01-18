@@ -72,4 +72,28 @@ public class AiMetrics {
         });
         holder.set(value);
     }
+
+    // ========== Sweeper Metrics ==========
+
+    public void incSweeperEvent(String event) {
+        Counter.builder("ai_sweeper_events_total")
+                .tag("event", event)
+                .register(meterRegistry)
+                .increment();
+    }
+
+    public void incSweeperRecovered(String recoveryType) {
+        // recoveryType: stuck_to_retry, stuck_to_failed, retry_wait_to_pending
+        Counter.builder("ai_sweeper_recovered_total")
+                .tag("type", recoveryType)
+                .register(meterRegistry)
+                .increment();
+    }
+
+    public void incSweeperRecovered(String recoveryType, int count) {
+        Counter.builder("ai_sweeper_recovered_total")
+                .tag("type", recoveryType)
+                .register(meterRegistry)
+                .increment(count);
+    }
 }

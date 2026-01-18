@@ -183,6 +183,58 @@ public class AiJobEntity {
     }
 
     /**
+     * RUNNING stuck → RETRY_WAIT 전환 (스위퍼가 호출)
+     * - 재시도 가능한 경우: RETRY_WAIT 상태로 전환
+     */
+    public void markStuckRetryWait() {
+        if (this.status != AiJobStatus.RUNNING) {
+            throw new IllegalStateException("Cannot mark stuck: current status is " + this.status);
+        }
+        this.status = AiJobStatus.RETRY_WAIT;
+        this.lastErrorCode = "STUCK_TIMEOUT";
+        this.lastErrorMessage = "Job stuck in RUNNING state, recovered by sweeper";
+        this.retryCount++;
+        this.nextRunAt = LocalDateTime.now().plusMinutes(1); // 1분 후 재시도
+        this.runningStartedAt = null;
+    }
+
+    /**
+     * RUNNING stuck → FAILED 전환 (스위퍼가 호출)
+     * - 재시도 불가능한 경우: FAILED 상태로 전환
+     */
+    public void markStuckFailed() {
+        if (this.status != AiJobStatus.RUNNING) {
+            throw new IllegalStateException("Cannot mark stuck failed: current status is " + this.status);
+        }
+        this.status = AiJobStatus.FAILED;
+        this.lastErrorCode = "STUCK_TIMEOUT";
+        this.lastErrorMessage = "Job stuck in RUNNING state, max retries exceeded";
+        this.finishedAt = LocalDateTime.now();
+        this.runningStartedAt = null;
+    }
+
+    /**
+     * RUNNING 상태가 stuck 상태인지 확인
+     * @param stuckThresholdMinutes stuck 판정 기준 (분)
+     */
+    public boolean isStuck(int stuckThresholdMinutes) {
+        if (this.status != AiJobStatus.RUNNING || this.runningStartedAt == null) {
+            return false;
+        }
+        return this.runningStartedAt.plusMinutes(stuckThresholdMinutes).isBefore(LocalDateTime.now());
+    }
+
+    /**
+     * RETRY_WAIT 상태가 재시도 가능 시점인지 확인
+     */
+    public boolean isReadyForRetry() {
+        if (this.status != AiJobStatus.RETRY_WAIT || this.nextRunAt == null) {
+            return false;
+        }
+        return !this.nextRunAt.isAfter(LocalDateTime.now());
+    }
+
+    /**
      * 지수 백오프로 nextRunAt 계산
      * - 1차: 30초, 2차: 60초, 3차: 120초...
      */

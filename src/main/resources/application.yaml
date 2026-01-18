@@ -76,5 +76,8 @@ ai:
     max-attempts: 5
     base-delay-seconds: 20
     max-delay-seconds: 600
-
+  sweeper:
+    enabled: true
+    cron: "0 */1 * * * *"          # 1분 주기
+    stuck-threshold-minutes: 10    # RUNNING 10분 이상이면 stuck
 
