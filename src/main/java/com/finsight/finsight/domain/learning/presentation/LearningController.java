@@ -63,17 +63,18 @@ public class LearningController {
                 DataResponse.from(newsQueryService.getNewsDetails(newsId)));
     }
 
-    @Operation(summary = "뉴스 검색 API", description = "뉴스 제목, 용어, 내용 요약, 3줄 요약에서 검색어를 통한 검색한 뉴스 목록을 반환합니다.")
+    @Operation(summary = "뉴스 검색 API",
+            description = "뉴스 제목과 내용 요약(전체/3줄)에서 검색어를 통해 검색한 뉴스 목록을 페이지 번호 기반으로 반환합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "상세 뉴스 조회 성공")
     })
     @GetMapping("/search")
-    public ResponseEntity<DataResponse<LearningResponseDTO.NewListResponse>> searchNewsList(
+    public ResponseEntity<DataResponse<LearningResponseDTO.SearchNewsResponse>> searchNewsList(
             @RequestParam(name = "q") String query, // 한 글자 이상의 검색어
-            @RequestParam(name = "cursor", required = false) String cursor,
-            @RequestParam(name = "size", defaultValue = "4") int size
+            @RequestParam(name = "page", defaultValue = "1") int page
     ){
+        int internalPage = Math.max(0, page - 1); // 0보다 작아지지 않게 보정
         return ResponseEntity.ok(
-                DataResponse.from(newsQueryService.searchNews(query, SortType.LATEST, size, cursor)));
+                DataResponse.from(newsQueryService.searchNews(query, SortType.LATEST, internalPage)));
     }
 }

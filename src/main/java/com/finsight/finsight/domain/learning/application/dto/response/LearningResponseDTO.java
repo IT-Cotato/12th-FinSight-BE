@@ -10,7 +10,7 @@ import java.util.List;
 
 public class LearningResponseDTO {
 
-        // NewsListResDTO
+        // NewsListResDTO(커서 기반 무한 스크롤 방식)
         @Schema(name = "LearningNewListResponse")
         @Builder
         public record NewListResponse(
@@ -20,6 +20,19 @@ public class LearningResponseDTO {
                         boolean hasNext,
                         String nextCursor,
                         List<NewsItem> news) {
+        }
+
+        // 2. 검색/번호 페이지네이션용 (오프셋 기반)
+        @Schema(name = "LearningSearchNewsResponse")
+        @Builder
+        public record SearchNewsResponse(
+                int currentPage,      // 현재 페이지 번호 (0부터 시작)
+                int totalPages,       // 전체 페이지 수
+                long totalElements,   // 전체 검색 결과 개수
+                int size,             // 한 페이지당 보여줄 개수 (4개)
+                boolean isFirst,      // 첫 페이지 여부
+                boolean isLast,       // 마지막 페이지 여부
+                List<NewsItem> news) { // 검색된 뉴스 리스트
         }
 
         @Schema(name = "LearningNewsItem")

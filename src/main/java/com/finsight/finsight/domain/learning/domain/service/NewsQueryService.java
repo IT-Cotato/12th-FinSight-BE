@@ -20,6 +20,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,22 +42,11 @@ public class NewsQueryService {
 
     // 일반 뉴스 리스트 조회
     public LearningResponseDTO.NewListResponse getNewsList(Category category, SortType sort, int size, String cursorStr) {
-        return getProcessedNewsResponse(category, sort, size, cursorStr, null);
-    }
-
-    // 검색 뉴스 리스트 조회
-    public LearningResponseDTO.NewListResponse searchNews(String keyword, SortType sort, int size, String cursorStr) {
-        return getProcessedNewsResponse(Category.ALL, sort, size, cursorStr, keyword);
-    }
-
-    // 뉴스 리스트 반환 프로세스
-    public LearningResponseDTO.NewListResponse getProcessedNewsResponse(Category category, SortType sort, int size,
-            String cursorStr, String keyword) {
         // 1. 커서 디코딩
         CursorParser.NewsCursor cursor = cursorParser.decode(cursorStr);
 
         // 2. 리포지토리 조회 (size+1)
-        List<NaverArticleEntity> articles = naverArticleRepository.findNewsByCondition(category, sort, size, cursor, keyword);
+        List<NaverArticleEntity> articles = naverArticleRepository.findNewsByCondition(category, sort, size, cursor);
 
         // 3. hasNext / content
         boolean hasNext = articles.size() > size;
@@ -82,6 +73,30 @@ public class NewsQueryService {
         }
 
         return learningConverter.toNewListResponse(content, articleTermMap, category, sort, size, hasNext, nextCursor);
+    }
+
+    // 검색 뉴스 리스트 조회
+    public LearningResponseDTO.SearchNewsResponse searchNews(String keyword, SortType sort, int page) {
+        int size = 4;
+
+        Page<NaverArticleEntity> articlePage = naverArticleRepository.findSearchNews(sort, page, size, keyword);
+
+        // 현재 페이지의 콘텐츠 추출
+        List<NaverArticleEntity> content = articlePage.getContent();
+
+        List<Long> articleIds = content.stream().map(NaverArticleEntity::getId).toList();
+        Map<Long, List<AiTermCardEntity>> articleTermMap = aiTermCardRepository.findByArticleIdIn(articleIds)
+                .stream()
+                .collect(Collectors.groupingBy(card -> card.getArticle().getId()));
+
+        return learningConverter.toSearchNewsResponse(
+                content,
+                articleTermMap,
+                articlePage.getTotalElements(),
+                articlePage.getTotalPages(),
+                page,
+                size
+        );
     }
 
     // 상세 뉴스 반환
