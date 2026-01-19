@@ -8,10 +8,7 @@ import com.finsight.finsight.domain.ai.persistence.entity.AiTermCardEntity;
 import com.finsight.finsight.domain.ai.persistence.entity.AiArticleSummaryEntity;
 import com.finsight.finsight.domain.ai.persistence.entity.AiArticleInsightEntity;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -62,6 +59,31 @@ public class LearningConverter {
                 .news(content.stream()
                         .map(article -> toNewsItem(article, articleTermMap.getOrDefault(article.getId(), List.of())))
                         .toList())
+                .build();
+    }
+
+    // 엔티티 -> DTO
+    public static LearningResponseDTO.SearchNewsResponse toSearchNewsResponse(
+            List<NaverArticleEntity> content,
+            Map<Long, List<AiTermCardEntity>> articleTermMap,
+            long totalElements,
+            int totalPages,
+            int page,
+            int size) {
+        // 1. 엔티티 리스트를 NewsItem DTO 리스트로 변환
+        List<LearningResponseDTO.NewsItem> newsItems = content.stream()
+                .map(article -> toNewsItem(article, articleTermMap.getOrDefault(article.getId(), List.of())))
+                .toList();
+
+        // 2. SearchNewsResponse 생성 (번호 기반 페이지네이션 정보 포함)
+        return LearningResponseDTO.SearchNewsResponse.builder()
+                .currentPage(page + 1)
+                .totalPages(totalPages)
+                .totalElements(totalElements)
+                .size(size)
+                .isFirst(page == 0) // 현재 페이지가 0이면 첫 페이지
+                .isLast(page >= totalPages - 1) // 현재 페이지가 전체 페이지-1 이상이면 마지막 페이지
+                .news(newsItems)
                 .build();
     }
 
