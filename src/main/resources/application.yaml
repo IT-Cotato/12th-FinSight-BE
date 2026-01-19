@@ -71,7 +71,7 @@ openai:
 ai:
   admin-token: ${AI_ADMIN_TOKEN}
   worker:
-    enabled: true             # 일단 AI 꺼놓기
+    enabled: false             # 일단 AI 꺼놓기
     cron: "*/30 * * * * *"     # 30초마다
     batch-size: 5              # 한번에 1개 claim
   retry:
@@ -79,7 +79,7 @@ ai:
     base-delay-seconds: 20
     max-delay-seconds: 600
   sweeper:
-    enabled: true
+    enabled: false
     cron: "0 */1 * * * *"          # 1분 주기
     stuck-threshold-minutes: 10    # RUNNING 10분 이상이면 stuck
 

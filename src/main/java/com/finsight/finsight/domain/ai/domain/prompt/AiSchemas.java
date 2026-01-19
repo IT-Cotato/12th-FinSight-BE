@@ -117,7 +117,7 @@ public final class AiSchemas {
     // {
     //   questions: [
     //     { question: "...", options: ["A","B","C","D"], answerIndex: 0~3, explanation: "..." },
-    //     ... (5개)
+    //     ... (3개)
     //   ]
     // }
     // =========================================================

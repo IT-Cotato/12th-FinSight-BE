@@ -21,7 +21,7 @@ public class AiPrompts {
     /**
      * SUMMARY
      * - summary3: "사건/이유/영향" 3줄(총 100자 안팎)
-     * - summaryFull: 학습용 본문 요약(배경–논쟁–전망, 8문장 안팎, ~습니다체)
+     * - summaryFull: 학습용 본문 요약(배경–논쟁–전망, 8문장 안팎)
      * - 마크업/하이라이트 금지(프론트에서 term 기반으로 하이라이트 처리)
      */
     public static String summaryUser(String title, String press, LocalDateTime publishedAt, String content) {
@@ -131,6 +131,11 @@ public class AiPrompts {
 
             [요구사항 - JSON]
             - 말투: 간결한 "~요" 체 (과하게 친근한 표현은 피함)
+            - 출력 형식: JSON만 출력하고, JSON 밖의 텍스트/설명은 절대 쓰지 않습니다.
+            - JSON은 줄바꿈/탭/여분 공백 없이 한 줄로(minified) 출력합니다.
+            - question은 1문장, 100자 내로 짧게
+            - options 각 항목은 1문장, 100자 내로 짧게(길이 비슷하게)
+            - explanation: 반드시 "~요" 체, 3~4문장
             - 목적: 경제/금융 학습에 도움이 되는 문제(암기보다 이해 중심)
             - 질문 유형 비율(권장):
               - 개념/정의 1문항
@@ -162,6 +167,11 @@ public class AiPrompts {
             - 문항 구성(권장): 의미(정의) 1문항 + 올바른 사용 예 1문항 + 비슷한 용어와 구분 1문항
             - 금지: 지나치게 전문적인 세부 분류/약어 암기 문제(초보자 기준)
             - 말투: 간결한 "~요" 체 (과하게 친근한 표현은 피함)
+            - 출력 형식: JSON만 출력하고, JSON 밖의 텍스트/설명은 절대 쓰지 않습니다.
+            - JSON은 줄바꿈/탭/여분 공백 없이 한 줄로(minified) 출력합니다.
+            - question은 1문장, 100자 내로 짧게
+            - options 각 항목은 1문장, 100자 내로 짧게(길이 비슷하게)
+            - explanation: 반드시 "~요" 체, 3~4문장
             - 위 용어 카드 기반으로 4지선다 퀴즈 3문항 생성(용어 의미/용례)
             - question: 용어 의미/맥락을 묻는 질문
             - choices: 보기 4개(정답 1개)
