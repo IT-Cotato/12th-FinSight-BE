@@ -66,7 +66,7 @@ public class LearningController {
     @Operation(summary = "뉴스 검색 API",
             description = "뉴스 제목과 내용 요약(전체/3줄)에서 검색어를 통해 검색한 뉴스 목록을 페이지 번호 기반으로 반환합니다.")
     @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "상세 뉴스 조회 성공")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "검색 뉴스 조회 성공")
     })
     @GetMapping("/search")
     public ResponseEntity<DataResponse<LearningResponseDTO.SearchNewsResponse>> searchNewsList(

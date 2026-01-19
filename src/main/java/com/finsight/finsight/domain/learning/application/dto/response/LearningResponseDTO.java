@@ -26,7 +26,7 @@ public class LearningResponseDTO {
         @Schema(name = "LearningSearchNewsResponse")
         @Builder
         public record SearchNewsResponse(
-                int currentPage,      // 현재 페이지 번호 (0부터 시작)
+                int currentPage,      // 현재 페이지 번호 (1부터 시작)
                 int totalPages,       // 전체 페이지 수
                 long totalElements,   // 전체 검색 결과 개수
                 int size,             // 한 페이지당 보여줄 개수 (4개)
