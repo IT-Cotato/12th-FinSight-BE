@@ -233,7 +233,16 @@ public class NaverCrawlerService {
                         log.info("[NAVER-CRAWL] saved section={} oid={} aid={} publishedAt={} title={}",
                                 sectionName, id.oid, id.aid, parsed.publishedAt, truncate(parsed.title, 80));
 
-                        aiJobService.enqueueSummary(entity, "v1", "gpt-4o-mini");
+                        // 본문 길이가 설정된 최소값 미만이면 AI 작업 건너뛰기
+                        int minLen = props.getMinContentLengthForAi();
+                        int contentLen = parsed.content.length();
+                        if (minLen > 0 && contentLen < minLen) {
+                            inc(sectionName, "ai_skipped_short_content");
+                            log.info("[NAVER-CRAWL] AI job skipped (short content) section={} oid={} aid={} contentLen={} minLen={}",
+                                    sectionName, id.oid, id.aid, contentLen, minLen);
+                        } else {
+                            aiJobService.enqueueSummary(entity, "v1", "gpt-4o-mini");
+                        }
                     } catch (DataIntegrityViolationException dup) {
                         // 유니크(oid,aid) 레이스 방지
                         inc(sectionName, "duplicate_race");

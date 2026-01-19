@@ -17,4 +17,11 @@ public class NaverCrawlerProperties {
     private int sleepMinMs = 250;
     private int sleepMaxMs = 700;
     private String userAgent = "Mozilla/5.0";
+
+    /**
+     * AI 작업을 수행할 최소 본문 길이 (문자 수).
+     * 이 길이 미만의 본문은 AI 요약/인사이트/퀴즈 생성을 건너뜁니다.
+     * 0 이하 값은 제한 없음을 의미합니다.
+     */
+    private int minContentLengthForAi = 200;
 }

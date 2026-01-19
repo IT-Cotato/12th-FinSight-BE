@@ -49,6 +49,7 @@ naver:
     sleep-min-ms: 250
     sleep-max-ms: 700
     user-agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome Safari"
+    min-content-length-for-ai: 1200   # 1200자 미만이면 AI 건너뛰기
 
 management:
   endpoints:
@@ -72,7 +73,7 @@ ai:
   worker:
     enabled: true             # 일단 AI 꺼놓기
     cron: "*/30 * * * * *"     # 30초마다
-    batch-size: 1              # 한번에 1개 claim
+    batch-size: 5              # 한번에 1개 claim
   retry:
     max-attempts: 5
     base-delay-seconds: 20
