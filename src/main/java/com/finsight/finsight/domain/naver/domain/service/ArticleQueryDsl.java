@@ -5,6 +5,7 @@ import com.finsight.finsight.domain.learning.domain.constant.SortType;
 import com.finsight.finsight.domain.learning.domain.service.CursorParser;
 import com.finsight.finsight.domain.naver.persistence.entity.NaverArticleEntity;
 import com.querydsl.core.types.Predicate;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -15,7 +16,9 @@ public interface ArticleQueryDsl {
             Category category,
             SortType sort,
             int size,
-            CursorParser.NewsCursor cursor,
-            String keyword
+            CursorParser.NewsCursor cursor
     );
+
+    // 페이지 기반 검색 결과
+    Page<NaverArticleEntity> findSearchNews(SortType sort, int page, int size, String keyword);
 }
