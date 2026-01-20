@@ -27,11 +27,19 @@ public class AiMetrics {
     }
 
     public void incProcessed(AiJobType type, String result) {
-        Counter.builder("ai_jobs_processed_total")
+        incProcessed(type, result, null);
+    }
+
+    public void incProcessed(AiJobType type, String result, String errorCode) {
+        Counter.Builder builder = Counter.builder("ai_jobs_processed_total")
                 .tag("type", type.name())
-                .tag("result", result) // success|failed|skipped
-                .register(meterRegistry)
-                .increment();
+                .tag("result", result); // success|failed|retry_wait|suspended
+
+        if (errorCode != null) {
+            builder.tag("error_code", errorCode);
+        }
+
+        builder.register(meterRegistry).increment();
     }
 
     public void incEvent(AiJobType type, String event) {
@@ -63,5 +71,29 @@ public class AiMetrics {
             return v;
         });
         holder.set(value);
+    }
+
+    // ========== Sweeper Metrics ==========
+
+    public void incSweeperEvent(String event) {
+        Counter.builder("ai_sweeper_events_total")
+                .tag("event", event)
+                .register(meterRegistry)
+                .increment();
+    }
+
+    public void incSweeperRecovered(String recoveryType) {
+        // recoveryType: stuck_to_retry, stuck_to_failed, retry_wait_to_pending
+        Counter.builder("ai_sweeper_recovered_total")
+                .tag("type", recoveryType)
+                .register(meterRegistry)
+                .increment();
+    }
+
+    public void incSweeperRecovered(String recoveryType, int count) {
+        Counter.builder("ai_sweeper_recovered_total")
+                .tag("type", recoveryType)
+                .register(meterRegistry)
+                .increment(count);
     }
 }

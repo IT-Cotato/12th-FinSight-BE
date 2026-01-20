@@ -22,6 +22,7 @@ import org.jsoup.nodes.Element;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.net.URI;
 import java.time.*;
@@ -44,6 +45,7 @@ public class NaverCrawlerService {
     private final MeterRegistry meterRegistry;
 
     private final AiJobService aiJobService;
+    private final TransactionTemplate transactionTemplate;
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final ObjectMapper OM = new ObjectMapper();
@@ -60,9 +62,9 @@ public class NaverCrawlerService {
     /**
      * 전체(8개 섹션) 1회 크롤링 실행
      * - 부분 실패는 계속 진행
+     * - 각 섹션별로 트랜잭션 분리 (섹션 완료 시마다 커밋)
      * - "전체가 거의 실패" 케이스는 AppException으로 올려서 API에서 에러코드로 반환
      */
-    @Transactional
     public NaverCrawlResultResponse crawlAllOnce() {
         Timer.Sample allSample = Timer.start(meterRegistry);
         CrawlAggregate agg = new CrawlAggregate();
@@ -73,16 +75,18 @@ public class NaverCrawlerService {
         List<NaverCrawlResultResponse.CategoryResult> categoryResults = new ArrayList<>();
 
         for (NaverEconomySection section : NaverEconomySection.values()) {
-            CrawlSectionResult r = crawlSection(section);
-            agg.add(r);
-
-            categoryResults.add(
-                    NaverCrawlResultResponse.CategoryResult.of(
-                            section.getDisplayName(),
-                            r.scanned,
-                            r.saved
-                    )
-            );
+            // 섹션별 트랜잭션 분리 - 각 섹션 완료 시 커밋
+            CrawlSectionResult r = transactionTemplate.execute(status -> crawlSection(section));
+            if (r != null) {
+                agg.add(r);
+                categoryResults.add(
+                        NaverCrawlResultResponse.CategoryResult.of(
+                                section.getDisplayName(),
+                                r.scanned,
+                                r.saved
+                        )
+                );
+            }
         }
 
         int sections = NaverEconomySection.values().length;
@@ -233,7 +237,16 @@ public class NaverCrawlerService {
                         log.info("[NAVER-CRAWL] saved section={} oid={} aid={} publishedAt={} title={}",
                                 sectionName, id.oid, id.aid, parsed.publishedAt, truncate(parsed.title, 80));
 
-                        aiJobService.enqueueSummary(entity, "v1", "gpt-4o-mini");
+                        // 본문 길이가 설정된 최소값 미만이면 AI 작업 건너뛰기
+                        int minLen = props.getMinContentLengthForAi();
+                        int contentLen = parsed.content.length();
+                        if (minLen > 0 && contentLen < minLen) {
+                            inc(sectionName, "ai_skipped_short_content");
+                            log.info("[NAVER-CRAWL] AI job skipped (short content) section={} oid={} aid={} contentLen={} minLen={}",
+                                    sectionName, id.oid, id.aid, contentLen, minLen);
+                        } else {
+                            aiJobService.enqueueSummary(entity, "v1", "gpt-4o-mini");
+                        }
                     } catch (DataIntegrityViolationException dup) {
                         // 유니크(oid,aid) 레이스 방지
                         inc(sectionName, "duplicate_race");
@@ -303,7 +316,15 @@ public class NaverCrawlerService {
     private List<ArticleId> extractArticleIds(Document doc) {
         LinkedHashSet<String> canonUrls = new LinkedHashSet<>();
 
-        for (Element a : doc.select("a[href]")) {
+        // 메인 기사 목록 영역(.section_latest)에서만 링크 추출 (사이드바/인기뉴스 제외)
+        Element mainList = doc.selectFirst("#newsct .section_latest");
+        if (mainList == null) {
+            // fallback: 기존 방식 (전체 페이지에서 추출)
+            mainList = doc;
+            log.debug("[NAVER-CRAWL] .section_latest not found, fallback to full page");
+        }
+
+        for (Element a : mainList.select("a[href]")) {
             String href = a.absUrl("href");
             if (href == null || href.isBlank()) continue;
 

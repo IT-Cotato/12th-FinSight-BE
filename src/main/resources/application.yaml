@@ -43,12 +43,13 @@ naver:
   crawler:
     enabled: false              # 일단 크롤링 꺼놓기
     cron: "0 */5 * * * *"       # 5분마다
-    max-pages: 2                # 각 탭 최신 2페이지까지만
+    max-pages: 1                # 각 탭 최신 1페이지까지만
     stop-after-seen-streak: 8   # 이미 저장된 기사 연속 8개면 종료
     timeout-ms: 8000
     sleep-min-ms: 250
     sleep-max-ms: 700
     user-agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome Safari"
+    min-content-length-for-ai: 1000   # 1000자 미만이면 AI 건너뛰기
 
 management:
   endpoints:
@@ -68,6 +69,7 @@ openai:
   temperature: 0.2
 
 ai:
+  admin-token: ${AI_ADMIN_TOKEN}
   worker:
     enabled: false             # 일단 AI 꺼놓기
     cron: "*/30 * * * * *"     # 30초마다
@@ -76,5 +78,8 @@ ai:
     max-attempts: 5
     base-delay-seconds: 20
     max-delay-seconds: 600
-
+  sweeper:
+    enabled: false
+    cron: "0 */1 * * * *"          # 1분 주기
+    stuck-threshold-minutes: 10    # RUNNING 10분 이상이면 stuck
 

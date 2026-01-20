@@ -94,4 +94,30 @@ OPENAI_API_KEY
 ```yaml
 naver.crawler.enabled: true/false
 ai.worker.enabled: true/false
+ai.sweeper.enabled: true/false
 ```
+
+## AI Job 안정화 (#24)
+
+### 상태 관리
+- `AiJobStatus`: PENDING, RUNNING, SUCCESS, FAILED, RETRY_WAIT, SUSPENDED
+- 재시도 필드: `retryCount`, `maxRetries`, `nextRunAt`
+- 지수 백오프 재시도 (30초 × 2^retryCount)
+
+### 분산락 & 복구
+- `AiJobLockService`: Redis 기반 분산락 (중복 실행 방지)
+- `AiJobSweeper`: stuck Job 자동 복구 (1분 주기)
+  - RUNNING 10분 초과 → RETRY_WAIT
+  - RETRY_WAIT + nextRunAt 도래 → PENDING
+
+### 관리자 API
+- `POST /api/v1/admin/ai/jobs/{jobId}/resume`: 단건 재개
+- `POST /api/v1/admin/ai/jobs/resume?reason=QUOTA|AUTH`: 일괄 재개
+
+### 크롤링 개선
+- 섹션별 트랜잭션 분리 (`TransactionTemplate`)
+- 메인 기사 영역만 크롤링 (`.section_latest`)
+- 본문 길이 체크: `naver.crawler.min-content-length-for-ai` (기본 200자)
+
+### 문서
+- `docs/AI-Architecture-Crawling-to-AI-Jobs.md`: 아키텍처 문서

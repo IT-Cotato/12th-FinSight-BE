@@ -3,6 +3,7 @@ package com.finsight.finsight.domain.ai.domain.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.finsight.finsight.domain.ai.domain.client.OpenAiClient;
+import com.finsight.finsight.domain.ai.domain.lock.AiJobLockService;
 import com.finsight.finsight.domain.ai.domain.metrics.AiMetrics;
 import com.finsight.finsight.domain.ai.domain.prompt.AiPrompts;
 import com.finsight.finsight.domain.ai.domain.prompt.AiSchemas;
@@ -46,13 +47,83 @@ public class AiJobService {
     private final TermService termService;
 
     private final OpenAiClient openAiClient;
+    private final AiJobLockService lockService;
     private final AiMetrics metrics;
     private final MeterRegistry meterRegistry;
 
     // =========================
-    // 1) Worker가 호출하는 claim 메서드
+    // 1) Worker가 호출: PENDING Job ID 목록 조회 (락 없이)
+    // =========================
+    @Transactional(readOnly = true)
+    public List<Long> findPendingJobIds(AiJobType type, int limit) {
+        return aiJobRepository.findPendingIdsForUpdateSkipLocked(type.name(), limit);
+    }
+
+    // =========================
+    // 2) 락 획득 후 RUNNING 전환
     // =========================
     @Transactional
+    public boolean tryMarkRunning(Long jobId) {
+        Optional<AiJobEntity> optJob = aiJobRepository.findById(jobId);
+        if (optJob.isEmpty()) return false;
+
+        AiJobEntity job = optJob.get();
+        if (job.getStatus() != AiJobStatus.PENDING) {
+            return false; // 이미 다른 워커가 처리 중
+        }
+
+        job.markRunning();
+        return true;
+    }
+
+    // =========================
+    // 3) 에러 유형별 상태 전환
+    // =========================
+    @Transactional
+    public void handleJobError(Long jobId, AiErrorCode errorCode) {
+        AiJobEntity job = aiJobRepository.findById(jobId)
+                .orElseThrow(() -> new AppException(AiErrorCode.AI_JOB_NOT_FOUND));
+
+        String code = errorCode.getCode();
+        String message = errorCode.getMessage();
+
+        if (errorCode.isSuspendable()) {
+            // 쿼터/결제/인증 에러 → SUSPENDED (재시도 금지)
+            job.markSuspended(code, message);
+            log.warn("[AI] event_type=ai_job_suspended job_id={} error_code={}", jobId, code);
+            metrics.incProcessed(job.getJobType(), "suspended", code);
+
+        } else if (errorCode.isRetryable() && job.canRetry()) {
+            // 재시도 가능 에러 + 재시도 가능 → RETRY_WAIT
+            job.markRetryWait(code, message);
+            log.info("[AI] event_type=ai_job_retry_wait job_id={} error_code={} retry_count={} next_run_at={}",
+                    jobId, code, job.getRetryCount(), job.getNextRunAt());
+            metrics.incProcessed(job.getJobType(), "retry_wait", code);
+
+        } else {
+            // 그 외 (400, 파싱 에러, 재시도 초과) → FAILED
+            job.markFailed(code, message);
+            log.error("[AI] event_type=ai_job_failed job_id={} error_code={}", jobId, code);
+            metrics.incProcessed(job.getJobType(), "failed", code);
+        }
+    }
+
+    @Transactional
+    public void handleJobError(Long jobId, BaseErrorCode errorCode) {
+        if (errorCode instanceof AiErrorCode aiError) {
+            handleJobError(jobId, aiError);
+        } else {
+            // 일반 에러는 FAILED 처리
+            AiJobEntity job = aiJobRepository.findById(jobId)
+                    .orElseThrow(() -> new AppException(AiErrorCode.AI_JOB_NOT_FOUND));
+            job.markFailed(errorCode.getCode(), errorCode.getMessage());
+            metrics.incProcessed(job.getJobType(), "failed", errorCode.getCode());
+        }
+    }
+
+    // 기존 호환용 (deprecated)
+    @Transactional
+    @Deprecated
     public List<Long> claimNextJobIds(AiJobType type, int limit) {
         List<Long> ids = aiJobRepository.findPendingIdsForUpdateSkipLocked(type.name(), limit);
         if (ids.isEmpty()) return List.of();
@@ -489,11 +560,13 @@ public class AiJobService {
         return sb.toString();
     }
 
+    /**
+     * @deprecated handleJobError 사용 권장
+     */
     @Transactional
+    @Deprecated
     protected void markJobFailed(Long jobId, BaseErrorCode errorCode) {
-        AiJobEntity job = aiJobRepository.findById(jobId)
-                .orElseThrow(() -> new AppException(AiErrorCode.AI_JOB_NOT_FOUND));
-        job.markFailed(errorCode.getCode(), errorCode.getMessage());
+        handleJobError(jobId, errorCode);
     }
 
     private static boolean isBlank(String s) {

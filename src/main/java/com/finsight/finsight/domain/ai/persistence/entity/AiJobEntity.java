@@ -48,6 +48,15 @@ public class AiJobEntity {
     @Column(name = "retry_count", nullable = false)
     private int retryCount;
 
+    @Column(name = "max_retries", nullable = false)
+    private int maxRetries = 3;
+
+    @Column(name = "next_run_at")
+    private LocalDateTime nextRunAt;
+
+    @Column(name = "running_started_at")
+    private LocalDateTime runningStartedAt;
+
     @Column(name = "last_error_code", length = 50)
     private String lastErrorCode;
 
@@ -71,6 +80,9 @@ public class AiJobEntity {
                         String promptVersion,
                         String model,
                         int retryCount,
+                        Integer maxRetries,
+                        LocalDateTime nextRunAt,
+                        LocalDateTime runningStartedAt,
                         String lastErrorCode,
                         String lastErrorMessage,
                         LocalDateTime requestedAt,
@@ -82,6 +94,9 @@ public class AiJobEntity {
         this.promptVersion = promptVersion;
         this.model = model;
         this.retryCount = retryCount;
+        this.maxRetries = (maxRetries != null) ? maxRetries : 3;
+        this.nextRunAt = nextRunAt;
+        this.runningStartedAt = runningStartedAt;
         this.lastErrorCode = lastErrorCode;
         this.lastErrorMessage = lastErrorMessage;
         this.requestedAt = requestedAt;
@@ -103,7 +118,10 @@ public class AiJobEntity {
 
     public void markRunning() {
         this.status = AiJobStatus.RUNNING;
-        this.startedAt = LocalDateTime.now();
+        this.runningStartedAt = LocalDateTime.now();
+        if (this.startedAt == null) {
+            this.startedAt = this.runningStartedAt;
+        }
     }
 
     public void markSuccess() {
@@ -117,6 +135,128 @@ public class AiJobEntity {
         this.lastErrorMessage = errorMessage;
         this.retryCount++;
         this.finishedAt = LocalDateTime.now();
+    }
+
+    /**
+     * RETRY_WAIT 상태로 전환 (재시도 가능 에러: 429, 5xx, timeout)
+     * - retryCount 증가
+     * - nextRunAt 설정 (지수 백오프)
+     */
+    public void markRetryWait(String errorCode, String errorMessage) {
+        this.status = AiJobStatus.RETRY_WAIT;
+        this.lastErrorCode = errorCode;
+        this.lastErrorMessage = errorMessage;
+        this.retryCount++;
+        this.nextRunAt = calculateNextRunAt();
+        this.runningStartedAt = null;
+    }
+
+    /**
+     * SUSPENDED 상태로 전환 (재시도 불가: 402, insufficient_quota, 401, 403)
+     * - 수동 확인 필요
+     */
+    public void markSuspended(String errorCode, String errorMessage) {
+        this.status = AiJobStatus.SUSPENDED;
+        this.lastErrorCode = errorCode;
+        this.lastErrorMessage = errorMessage;
+        this.finishedAt = LocalDateTime.now();
+        this.runningStartedAt = null;
+    }
+
+    /**
+     * RETRY_WAIT → PENDING 전환 (스위퍼가 호출)
+     */
+    public void markPendingForRetry() {
+        if (this.status != AiJobStatus.RETRY_WAIT) {
+            throw new IllegalStateException("Cannot mark pending: current status is " + this.status);
+        }
+        this.status = AiJobStatus.PENDING;
+        this.nextRunAt = null;
+        this.runningStartedAt = null;
+    }
+
+    /**
+     * 재시도 가능 여부
+     */
+    public boolean canRetry() {
+        return this.retryCount < this.maxRetries;
+    }
+
+    /**
+     * RUNNING stuck → RETRY_WAIT 전환 (스위퍼가 호출)
+     * - 재시도 가능한 경우: RETRY_WAIT 상태로 전환
+     */
+    public void markStuckRetryWait() {
+        if (this.status != AiJobStatus.RUNNING) {
+            throw new IllegalStateException("Cannot mark stuck: current status is " + this.status);
+        }
+        this.status = AiJobStatus.RETRY_WAIT;
+        this.lastErrorCode = "STUCK_TIMEOUT";
+        this.lastErrorMessage = "Job stuck in RUNNING state, recovered by sweeper";
+        this.retryCount++;
+        this.nextRunAt = LocalDateTime.now().plusMinutes(1); // 1분 후 재시도
+        this.runningStartedAt = null;
+    }
+
+    /**
+     * RUNNING stuck → FAILED 전환 (스위퍼가 호출)
+     * - 재시도 불가능한 경우: FAILED 상태로 전환
+     */
+    public void markStuckFailed() {
+        if (this.status != AiJobStatus.RUNNING) {
+            throw new IllegalStateException("Cannot mark stuck failed: current status is " + this.status);
+        }
+        this.status = AiJobStatus.FAILED;
+        this.lastErrorCode = "STUCK_TIMEOUT";
+        this.lastErrorMessage = "Job stuck in RUNNING state, max retries exceeded";
+        this.finishedAt = LocalDateTime.now();
+        this.runningStartedAt = null;
+    }
+
+    /**
+     * RUNNING 상태가 stuck 상태인지 확인
+     * @param stuckThresholdMinutes stuck 판정 기준 (분)
+     */
+    public boolean isStuck(int stuckThresholdMinutes) {
+        if (this.status != AiJobStatus.RUNNING || this.runningStartedAt == null) {
+            return false;
+        }
+        return this.runningStartedAt.plusMinutes(stuckThresholdMinutes).isBefore(LocalDateTime.now());
+    }
+
+    /**
+     * RETRY_WAIT 상태가 재시도 가능 시점인지 확인
+     */
+    public boolean isReadyForRetry() {
+        if (this.status != AiJobStatus.RETRY_WAIT || this.nextRunAt == null) {
+            return false;
+        }
+        return !this.nextRunAt.isAfter(LocalDateTime.now());
+    }
+
+    /**
+     * SUSPENDED → PENDING 전환 (관리자 resume)
+     * - retryCount 초기화
+     * - 에러 정보 유지 (이력 추적용)
+     */
+    public void resume() {
+        if (this.status != AiJobStatus.SUSPENDED) {
+            throw new IllegalStateException("Cannot resume: current status is " + this.status);
+        }
+        this.status = AiJobStatus.PENDING;
+        this.retryCount = 0;
+        this.finishedAt = null;
+        this.nextRunAt = null;
+        this.runningStartedAt = null;
+    }
+
+    /**
+     * 지수 백오프로 nextRunAt 계산
+     * - 1차: 30초, 2차: 60초, 3차: 120초...
+     */
+    private LocalDateTime calculateNextRunAt() {
+        long delaySeconds = 30L * (1L << Math.min(this.retryCount, 5));
+        return LocalDateTime.now().plusSeconds(delaySeconds);
     }
 }
 
