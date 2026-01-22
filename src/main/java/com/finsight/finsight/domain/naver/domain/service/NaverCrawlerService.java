@@ -117,8 +117,8 @@ public class NaverCrawlerService {
      * 섹션(탭) 단위 크롤링
      * - stopAfterSeenStreak 로 "중복 연속"이면 조기 종료
      * - 실패는 카운트만 올리고 계속 진행(부분 실패 허용)
+     * - 트랜잭션은 crawlAllOnce()에서 TransactionTemplate으로 관리
      */
-    @Transactional
     public CrawlSectionResult crawlSection(NaverEconomySection section) {
         String sectionName = section.getDisplayName();
         CrawlSectionResult result = new CrawlSectionResult(sectionName);
