@@ -10,9 +10,9 @@ import org.springframework.http.HttpStatus;
 public enum NaverCrawlErrorCode implements BaseErrorCode {
 
     // 502/503 성격(외부 의존 실패)
-    NAVER_LIST_FETCH_FAIL(HttpStatus.BAD_GATEWAY, "네이버 목록 페이지 조회 실패", "NAVER-001"),
-    NAVER_ARTICLE_FETCH_FAIL(HttpStatus.BAD_GATEWAY, "네이버 기사 페이지 조회 실패", "NAVER-002"),
-    NAVER_ARTICLE_PARSE_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "네이버 기사 파싱 실패", "NAVER-003")
+    NAVER_LIST_FETCH_FAIL(HttpStatus.BAD_GATEWAY, "NAVER-001", "네이버 목록 페이지 조회 실패"),
+    NAVER_ARTICLE_FETCH_FAIL(HttpStatus.BAD_GATEWAY, "NAVER-002", "네이버 기사 페이지 조회 실패"),
+    NAVER_ARTICLE_PARSE_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "NAVER-003", "네이버 기사 파싱 실패")
     ;
 
     private final HttpStatus httpStatus;
