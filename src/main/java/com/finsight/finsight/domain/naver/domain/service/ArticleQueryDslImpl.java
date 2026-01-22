@@ -195,4 +195,44 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl {
                         };
                 };
         }
+
+        // 카테고리별 인기순 상위 N개 조회 (홈 인기뉴스용)
+        @Override
+        public List<NaverArticleEntity> findTopPopularBySection(NaverEconomySection section, int limit) {
+                QNaverArticleEntity article = QNaverArticleEntity.naverArticleEntity;
+                QAiTermCardEntity termCard = QAiTermCardEntity.aiTermCardEntity;
+                QAiQuizSetEntity quizSet = QAiQuizSetEntity.aiQuizSetEntity;
+
+                BooleanBuilder builder = new BooleanBuilder();
+
+                // 1) 섹션 조건
+                builder.and(article.section.eq(section));
+
+                // 2) 용어 카드 3개 이상 조건
+                builder.and(article.id.in(
+                        JPAExpressions.select(termCard.article.id)
+                                .from(termCard)
+                                .groupBy(termCard.article.id)
+                                .having(termCard.count().goe(3L))));
+
+                // 3) 퀴즈 생성 여부 (내용 퀴즈 & 용어 퀴즈)
+                builder.and(JPAExpressions.selectOne()
+                        .from(quizSet)
+                        .where(quizSet.article.eq(article)
+                                .and(quizSet.quizKind.eq(AiJobType.QUIZ_CONTENT)))
+                        .exists());
+
+                builder.and(JPAExpressions.selectOne()
+                        .from(quizSet)
+                        .where(quizSet.article.eq(article)
+                                .and(quizSet.quizKind.eq(AiJobType.QUIZ_TERM)))
+                        .exists());
+
+                return queryFactory
+                        .selectFrom(article)
+                        .where(builder)
+                        .orderBy(article.viewCount.desc(), article.id.desc())
+                        .limit(limit)
+                        .fetch();
+        }
 }
