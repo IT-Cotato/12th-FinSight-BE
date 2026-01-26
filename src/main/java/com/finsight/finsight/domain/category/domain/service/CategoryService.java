@@ -3,10 +3,16 @@ package com.finsight.finsight.domain.category.domain.service;
 import com.finsight.finsight.domain.auth.exception.AuthException;
 import com.finsight.finsight.domain.auth.exception.code.AuthErrorCode;
 import com.finsight.finsight.domain.category.application.dto.request.SaveCategoryRequest;
+import com.finsight.finsight.domain.category.application.dto.request.UpdateCategoryOrderRequest;
+import com.finsight.finsight.domain.category.application.dto.response.CategoryOrderResponse;
 import com.finsight.finsight.domain.category.application.dto.response.CategoryResponse;
 import com.finsight.finsight.domain.category.exception.CategoryException;
 import com.finsight.finsight.domain.category.exception.code.CategoryErrorCode;
+import com.finsight.finsight.domain.category.persistence.entity.CategoryEntity;
 import com.finsight.finsight.domain.category.persistence.entity.UserCategoryEntity;
+import com.finsight.finsight.domain.category.persistence.entity.UserCategoryOrderEntity;
+import com.finsight.finsight.domain.category.persistence.repository.CategoryRepository;
+import com.finsight.finsight.domain.category.persistence.repository.UserCategoryOrderRepository;
 import com.finsight.finsight.domain.category.persistence.repository.UserCategoryRepository;
 import com.finsight.finsight.domain.naver.domain.constant.NaverEconomySection;
 import com.finsight.finsight.domain.user.persistence.entity.UserEntity;
@@ -25,6 +31,8 @@ public class CategoryService {
 
     private final UserRepository userRepository;
     private final UserCategoryRepository userCategoryRepository;
+    private final CategoryRepository categoryRepository;
+    private final UserCategoryOrderRepository userCategoryOrderRepository;
 
     @Transactional
     public void saveCategories(Long userId, SaveCategoryRequest request) {
@@ -54,6 +62,65 @@ public class CategoryService {
                 .toList();
 
         return CategoryResponse.from(sections);
+    }
+
+    /**
+     * 카테고리 순서 조회
+     */
+    @Transactional(readOnly = true)
+    public CategoryOrderResponse getCategoryOrder(Long userId) {
+        List<UserCategoryOrderEntity> userOrders = userCategoryOrderRepository
+                .findByUserUserIdOrderBySortOrderAsc(userId);
+
+        List<CategoryOrderResponse.CategoryOrderItem> items;
+
+        if (userOrders.isEmpty()) {
+            List<CategoryEntity> defaultCategories = categoryRepository.findAllByOrderBySortOrderAsc();
+            items = defaultCategories.stream()
+                    .map(c -> new CategoryOrderResponse.CategoryOrderItem(
+                            c.getCategoryId(),
+                            c.getCode(),
+                            c.getNameKo(),
+                            c.getSortOrder()
+                    ))
+                    .toList();
+        } else {
+            items = userOrders.stream()
+                    .map(uo -> new CategoryOrderResponse.CategoryOrderItem(
+                            uo.getCategory().getCategoryId(),
+                            uo.getCategory().getCode(),
+                            uo.getCategory().getNameKo(),
+                            uo.getSortOrder()
+                    ))
+                    .toList();
+        }
+
+        return new CategoryOrderResponse(items);
+    }
+
+    /**
+     * 카테고리 순서 변경
+     */
+    @Transactional
+    public void updateCategoryOrder(Long userId, UpdateCategoryOrderRequest request) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+
+        // 기존 순서 삭제
+        userCategoryOrderRepository.deleteByUserUserId(userId);
+
+        // 새 순서 저장
+        for (UpdateCategoryOrderRequest.CategoryOrderItem item : request.orders()) {
+            CategoryEntity category = categoryRepository.findById(item.categoryId())
+                    .orElseThrow(() -> new CategoryException(CategoryErrorCode.INVALID_CATEGORY_SECTION));
+
+            UserCategoryOrderEntity order = UserCategoryOrderEntity.builder()
+                    .user(user)
+                    .category(category)
+                    .sortOrder(item.sortOrder())
+                    .build();
+            userCategoryOrderRepository.save(order);
+        }
     }
 
     private List<NaverEconomySection> validateAndParseSections(List<String> sectionNames) {
