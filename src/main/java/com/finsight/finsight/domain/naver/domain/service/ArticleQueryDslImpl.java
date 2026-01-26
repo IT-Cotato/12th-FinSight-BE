@@ -235,4 +235,72 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl {
                         .limit(limit)
                         .fetch();
         }
+
+        // 카테고리별 최신순 상위 N개 조회 (홈 맞춤뉴스용)
+        @Override
+        public List<NaverArticleEntity> findTopLatestBySection(NaverEconomySection section, int limit) {
+                QNaverArticleEntity article = QNaverArticleEntity.naverArticleEntity;
+                QAiTermCardEntity termCard = QAiTermCardEntity.aiTermCardEntity;
+                QAiQuizSetEntity quizSet = QAiQuizSetEntity.aiQuizSetEntity;
+
+                BooleanBuilder builder = buildAiCompletedCondition(article, termCard, quizSet);
+
+                // 섹션 조건
+                builder.and(article.section.eq(section));
+
+                return queryFactory
+                        .selectFrom(article)
+                        .where(builder)
+                        .orderBy(article.publishedAt.desc(), article.id.desc())
+                        .limit(limit)
+                        .fetch();
+        }
+
+        // 전체 카테고리 최신순 상위 N개 조회 (홈 맞춤뉴스용)
+        @Override
+        public List<NaverArticleEntity> findTopLatestAll(int limit) {
+                QNaverArticleEntity article = QNaverArticleEntity.naverArticleEntity;
+                QAiTermCardEntity termCard = QAiTermCardEntity.aiTermCardEntity;
+                QAiQuizSetEntity quizSet = QAiQuizSetEntity.aiQuizSetEntity;
+
+                BooleanBuilder builder = buildAiCompletedCondition(article, termCard, quizSet);
+
+                return queryFactory
+                        .selectFrom(article)
+                        .where(builder)
+                        .orderBy(article.publishedAt.desc(), article.id.desc())
+                        .limit(limit)
+                        .fetch();
+        }
+
+        // AI Job 완료 조건 빌더 (용어카드 3개 이상, 퀴즈 2종 존재)
+        private BooleanBuilder buildAiCompletedCondition(
+                QNaverArticleEntity article,
+                QAiTermCardEntity termCard,
+                QAiQuizSetEntity quizSet
+        ) {
+                BooleanBuilder builder = new BooleanBuilder();
+
+                // 용어 카드 3개 이상 조건
+                builder.and(article.id.in(
+                        JPAExpressions.select(termCard.article.id)
+                                .from(termCard)
+                                .groupBy(termCard.article.id)
+                                .having(termCard.count().goe(3L))));
+
+                // 퀴즈 생성 여부 (내용 퀴즈 & 용어 퀴즈)
+                builder.and(JPAExpressions.selectOne()
+                        .from(quizSet)
+                        .where(quizSet.article.eq(article)
+                                .and(quizSet.quizKind.eq(AiJobType.QUIZ_CONTENT)))
+                        .exists());
+
+                builder.and(JPAExpressions.selectOne()
+                        .from(quizSet)
+                        .where(quizSet.article.eq(article)
+                                .and(quizSet.quizKind.eq(AiJobType.QUIZ_TERM)))
+                        .exists());
+
+                return builder;
+        }
 }

@@ -1,5 +1,9 @@
 package com.finsight.finsight.domain.home.domain.service;
 
+import com.finsight.finsight.domain.ai.persistence.entity.AiTermCardEntity;
+import com.finsight.finsight.domain.ai.persistence.repository.AiTermCardRepository;
+import com.finsight.finsight.domain.category.persistence.entity.UserCategoryEntity;
+import com.finsight.finsight.domain.category.persistence.repository.UserCategoryRepository;
 import com.finsight.finsight.domain.home.application.dto.response.HomeResponseDTO;
 import com.finsight.finsight.domain.naver.domain.constant.NaverEconomySection;
 import com.finsight.finsight.domain.naver.persistence.entity.NaverArticleEntity;
@@ -12,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
@@ -19,8 +24,11 @@ import java.util.*;
 public class HomeNewsService {
 
     private final NaverArticleRepository naverArticleRepository;
+    private final UserCategoryRepository userCategoryRepository;
+    private final AiTermCardRepository aiTermCardRepository;
 
     private static final int CATEGORY_COUNT = NaverEconomySection.values().length; // 8
+    private static final int PERSONALIZED_NEWS_SIZE = 8;
 
     /**
      * 카테고리별 인기순 라운드 로빈 방식 조회
@@ -119,5 +127,173 @@ public class HomeNewsService {
         return Base64.getEncoder().encodeToString(
                 String.valueOf(offset).getBytes(StandardCharsets.UTF_8)
         );
+    }
+
+    /**
+     * 맞춤 뉴스 조회
+     * - 종합(category=null): 관심사 카테고리 우선 + 나머지 카테고리 라운드 로빈으로 8개
+     * - 특정 카테고리: 해당 카테고리 최신순 8개
+     */
+    public HomeResponseDTO.PersonalizedNewsResponse getPersonalizedNews(Long userId, NaverEconomySection category) {
+        List<NaverArticleEntity> articles;
+
+        if (category != null) {
+            // 특정 카테고리: 최신순 8개
+            articles = naverArticleRepository.findTopLatestBySection(category, PERSONALIZED_NEWS_SIZE);
+        } else {
+            // 종합: 관심사 우선 + 나머지 라운드 로빈
+            articles = getPersonalizedNewsForAll(userId);
+        }
+
+        // 기사 ID 목록으로 용어 카드 한번에 조회 (N+1 방지)
+        List<Long> articleIds = articles.stream().map(NaverArticleEntity::getId).toList();
+        Map<Long, List<HomeResponseDTO.TermItem>> termsByArticleId = getTermsByArticleIds(articleIds);
+
+        List<HomeResponseDTO.PersonalizedNewsItem> newsItems = articles.stream()
+                .map(article -> HomeResponseDTO.PersonalizedNewsItem.builder()
+                        .newsId(article.getId())
+                        .category(article.getSection())
+                        .terms(termsByArticleId.getOrDefault(article.getId(), List.of()))
+                        .title(article.getTitle())
+                        .thumbnailUrl(article.getThumbnailUrl())
+                        .build())
+                .toList();
+
+        return HomeResponseDTO.PersonalizedNewsResponse.builder()
+                .category(category)
+                .news(newsItems)
+                .build();
+    }
+
+    /**
+     * 여러 기사에 대한 용어 카드 조회 (기사별 최대 3개)
+     */
+    private Map<Long, List<HomeResponseDTO.TermItem>> getTermsByArticleIds(List<Long> articleIds) {
+        if (articleIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<AiTermCardEntity> termCards = aiTermCardRepository.findByArticleIdIn(articleIds);
+
+        return termCards.stream()
+                .collect(Collectors.groupingBy(
+                        tc -> tc.getArticle().getId(),
+                        Collectors.collectingAndThen(
+                                Collectors.toList(),
+                                cards -> cards.stream()
+                                        .sorted(Comparator.comparingInt(AiTermCardEntity::getCardOrder))
+                                        .limit(3)
+                                        .map(tc -> HomeResponseDTO.TermItem.builder()
+                                                .termId(tc.getTerm().getId())
+                                                .displayName(tc.getTerm().getDisplayName())
+                                                .build())
+                                        .toList()
+                        )
+                ));
+    }
+
+    /**
+     * 종합 맞춤 뉴스 조회 로직
+     * 1. 사용자 관심사 카테고리에서 라운드 로빈 (우선)
+     * 2. 나머지 카테고리에서 라운드 로빈으로 8개 채울 때까지
+     * 3. 아직 부족하면 관심사 카테고리에서 추가로 채움
+     */
+    private List<NaverArticleEntity> getPersonalizedNewsForAll(Long userId) {
+        // 사용자 관심사 카테고리 조회
+        List<NaverEconomySection> interestSections = userCategoryRepository.findByUserUserId(userId)
+                .stream()
+                .map(UserCategoryEntity::getSection)
+                .toList();
+
+        Set<Long> usedArticleIds = new HashSet<>();
+        List<NaverArticleEntity> result = new ArrayList<>();
+
+        // 관심사 카테고리별 기사 미리 조회 (충분히 많이)
+        Map<NaverEconomySection, List<NaverArticleEntity>> interestArticles = new EnumMap<>(NaverEconomySection.class);
+        for (NaverEconomySection section : interestSections) {
+            interestArticles.put(section, naverArticleRepository.findTopLatestBySection(section, PERSONALIZED_NEWS_SIZE));
+        }
+
+        // 1. 관심사 카테고리에서 라운드 로빈으로 1개씩
+        int round = 0;
+        int maxInterestRounds = interestArticles.values().stream()
+                .mapToInt(List::size)
+                .max()
+                .orElse(0);
+
+        while (result.size() < PERSONALIZED_NEWS_SIZE && round < maxInterestRounds) {
+            for (NaverEconomySection section : interestSections) {
+                if (result.size() >= PERSONALIZED_NEWS_SIZE) break;
+
+                List<NaverArticleEntity> articles = interestArticles.get(section);
+                if (articles != null && round < articles.size()) {
+                    NaverArticleEntity article = articles.get(round);
+                    if (!usedArticleIds.contains(article.getId())) {
+                        result.add(article);
+                        usedArticleIds.add(article.getId());
+                    }
+                }
+            }
+            // 관심사에서 각 1개씩만 우선 배치 후 나머지 카테고리로 넘어감
+            if (round == 0) break;
+            round++;
+        }
+
+        // 2. 나머지 카테고리에서 라운드 로빈으로 채움
+        if (result.size() < PERSONALIZED_NEWS_SIZE) {
+            Set<NaverEconomySection> interestSet = new HashSet<>(interestSections);
+            List<NaverEconomySection> remainingSections = Arrays.stream(NaverEconomySection.values())
+                    .filter(s -> !interestSet.contains(s))
+                    .toList();
+
+            Map<NaverEconomySection, List<NaverArticleEntity>> remainingArticles = new EnumMap<>(NaverEconomySection.class);
+            for (NaverEconomySection section : remainingSections) {
+                remainingArticles.put(section, naverArticleRepository.findTopLatestBySection(section, PERSONALIZED_NEWS_SIZE));
+            }
+
+            round = 0;
+            int maxRemainingRounds = remainingArticles.values().stream()
+                    .mapToInt(List::size)
+                    .max()
+                    .orElse(0);
+
+            while (result.size() < PERSONALIZED_NEWS_SIZE && round < maxRemainingRounds) {
+                for (NaverEconomySection section : remainingSections) {
+                    if (result.size() >= PERSONALIZED_NEWS_SIZE) break;
+
+                    List<NaverArticleEntity> articles = remainingArticles.get(section);
+                    if (articles != null && round < articles.size()) {
+                        NaverArticleEntity article = articles.get(round);
+                        if (!usedArticleIds.contains(article.getId())) {
+                            result.add(article);
+                            usedArticleIds.add(article.getId());
+                        }
+                    }
+                }
+                round++;
+            }
+        }
+
+        // 3. 아직 부족하면 관심사 카테고리에서 추가로 채움
+        if (result.size() < PERSONALIZED_NEWS_SIZE) {
+            round = 1; // 이미 0라운드는 사용함
+            while (result.size() < PERSONALIZED_NEWS_SIZE && round < maxInterestRounds) {
+                for (NaverEconomySection section : interestSections) {
+                    if (result.size() >= PERSONALIZED_NEWS_SIZE) break;
+
+                    List<NaverArticleEntity> articles = interestArticles.get(section);
+                    if (articles != null && round < articles.size()) {
+                        NaverArticleEntity article = articles.get(round);
+                        if (!usedArticleIds.contains(article.getId())) {
+                            result.add(article);
+                            usedArticleIds.add(article.getId());
+                        }
+                    }
+                }
+                round++;
+            }
+        }
+
+        return result;
     }
 }

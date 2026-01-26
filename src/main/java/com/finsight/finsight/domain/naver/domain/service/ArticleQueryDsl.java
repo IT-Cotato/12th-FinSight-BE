@@ -25,4 +25,10 @@ public interface ArticleQueryDsl {
 
     // 카테고리별 인기순 상위 N개 조회 (홈 인기뉴스용)
     List<NaverArticleEntity> findTopPopularBySection(NaverEconomySection section, int limit);
+
+    // 카테고리별 최신순 상위 N개 조회 (홈 맞춤뉴스용)
+    List<NaverArticleEntity> findTopLatestBySection(NaverEconomySection section, int limit);
+
+    // 전체 카테고리 최신순 상위 N개 조회 (홈 맞춤뉴스용)
+    List<NaverArticleEntity> findTopLatestAll(int limit);
 }
