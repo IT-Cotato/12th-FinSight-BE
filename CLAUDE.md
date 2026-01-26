@@ -117,7 +117,7 @@ ai.sweeper.enabled: true/false
 ### 크롤링 개선
 - 섹션별 트랜잭션 분리 (`TransactionTemplate`)
 - 메인 기사 영역만 크롤링 (`.section_latest`)
-- 본문 길이 체크: `naver.crawler.min-content-length-for-ai` (기본 200자)
+- 본문 길이 체크: `naver.crawler.min-content-length-for-ai` (기본 1000자)
 
 ### 문서
 - `docs/AI-Architecture-Crawling-to-AI-Jobs.md`: 아키텍처 문서

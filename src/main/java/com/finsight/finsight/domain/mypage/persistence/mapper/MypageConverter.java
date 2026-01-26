@@ -10,12 +10,9 @@ import java.util.stream.Collectors;
 public class MypageConverter {
 
     // 엔티티 -> dto
-    public static MypageResponse.MemberProfileResponse toMypageProfileResponse(UserEntity userEntity, List<UserCategoryEntity> userCategories){
+    public static MypageResponse.MemberProfileResponse toMypageProfileResponse(UserEntity userEntity){
         return MypageResponse.MemberProfileResponse.builder()
                 .nickname(userEntity.getNickname())
-                .userCategories(userCategories.stream()
-                        .map(category -> category.getSection().getDisplayName())
-                        .collect(Collectors.toList()))
                 .currentLv(userEntity.getLevel())
                 .percentLv(userEntity.getExp() / userEntity.getLevel())
                 .nextLv(userEntity.getLevel() + 1)

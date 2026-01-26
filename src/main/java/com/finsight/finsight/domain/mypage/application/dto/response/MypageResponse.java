@@ -9,7 +9,6 @@ public class MypageResponse {
     @Builder
     public record MemberProfileResponse(
             String nickname,
-            List<String> userCategories,
             int currentLv,
             int nextLv,
             int percentLv

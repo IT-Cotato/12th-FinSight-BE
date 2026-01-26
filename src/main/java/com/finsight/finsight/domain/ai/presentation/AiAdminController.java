@@ -29,7 +29,7 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-@RequestMapping("/api/v1/admin/ai/jobs")
+@RequestMapping("/api/admin/ai/jobs")
 @Tag(name = "AI Admin", description = "AI Job 관리자 API")
 public class AiAdminController {
 
@@ -106,7 +106,7 @@ public class AiAdminController {
         return switch (reason.toUpperCase()) {
             case "QUOTA" -> List.of("AI-020", "AI-021"); // QUOTA_EXHAUSTED, INSUFFICIENT_BALANCE
             case "AUTH" -> List.of("AI-022", "AI-023");  // INVALID_API_KEY, ACCESS_DENIED
-            default -> throw new IllegalArgumentException("Unknown reason: " + reason + ". Supported: QUOTA, AUTH");
+            default -> throw new AppException(AiErrorCode.OPENAI_INVALID_REQUEST);
         };
     }
 

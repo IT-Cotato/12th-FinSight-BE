@@ -32,9 +32,7 @@ public class MypageService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new MypageException(MypageErrorCode.MEMBER_NOT_FOUND));
 
-        List<UserCategoryEntity> userCategories = userCategoryRepository.findByUserUserId(user.getUserId());
-
-        return MypageConverter.toMypageProfileResponse(user, userCategories);
+        return MypageConverter.toMypageProfileResponse(user);
 
     }
 

@@ -16,13 +16,13 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/mypage")
+@RequestMapping("/api/mypage")
 @RequiredArgsConstructor
 public class MypageController {
 
     private final MypageService myPageService;
 
-    @Operation(summary = "유저 정보를 조회합니다.", description = "유저의 닉네임, 관심 카테고리, 레벨 정보를 반환합니다.")
+    @Operation(summary = "유저 정보를 조회합니다.", description = "유저의 닉네임, 레벨 정보를 반환합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "유저 정보 조회 성공")
     })
