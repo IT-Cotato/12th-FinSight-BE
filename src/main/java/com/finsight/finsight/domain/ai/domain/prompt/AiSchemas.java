@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * - SUMMARY: summary3 (string[3]) + summaryFull (string)
  * - TERM_CARDS: cards (object[3]) { term, highlightText, definition }
  * - INSIGHT: insights (object[3]) { title, detail, whyItMatters }
- * - QUIZ: questions (object[5]) { question, options[4], answerIndex(0~3), explanation }
+ * - QUIZ: questions (object[3]) { question, options[4], answerIndex(0~3), explanations[4] }
  */
 public final class AiSchemas {
 
@@ -146,20 +146,25 @@ public final class AiSchemas {
         answerIndex.put("maximum", 3);
         qProps.set("answerIndex", answerIndex);
 
-        qProps.set("explanation", stringSchema());
+        ObjectNode explanations = OM.createObjectNode();
+        explanations.put("type", "array");
+        explanations.put("minItems", 4);
+        explanations.put("maxItems", 4);
+        explanations.set("items", stringSchema());
+        qProps.set("explanations", explanations);
 
         question.set("properties", qProps);
         question.set("required", OM.createArrayNode()
                 .add("question")
                 .add("options")
                 .add("answerIndex")
-                .add("explanation"));
+                .add("explanations"));
         question.put("additionalProperties", false);
 
         ObjectNode questions = OM.createObjectNode();
         questions.put("type", "array");
-        questions.put("minItems", 5);
-        questions.put("maxItems", 5);
+        questions.put("minItems", 3);
+        questions.put("maxItems", 3);
         questions.set("items", question);
 
         props.set("questions", questions);
