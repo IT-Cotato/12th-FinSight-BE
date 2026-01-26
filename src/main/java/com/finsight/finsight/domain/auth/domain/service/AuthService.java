@@ -14,6 +14,9 @@ import com.finsight.finsight.domain.user.persistence.entity.UserAuthEntity;
 import com.finsight.finsight.domain.user.persistence.entity.UserEntity;
 import com.finsight.finsight.domain.user.persistence.repository.UserAuthRepository;
 import com.finsight.finsight.domain.user.persistence.repository.UserRepository;
+import com.finsight.finsight.domain.storage.persistence.entity.FolderEntity;
+import com.finsight.finsight.domain.storage.persistence.entity.FolderType;
+import com.finsight.finsight.domain.storage.persistence.repository.FolderRepository;
 import com.finsight.finsight.global.exception.AppException;
 import com.finsight.finsight.global.exception.ErrorCode;
 import com.finsight.finsight.global.security.JwtUtil;
@@ -37,6 +40,7 @@ public class AuthService {
     private final KakaoService kakaoService;
     private final JwtUtil jwtUtil;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final FolderRepository folderRepository;
 
     // 회원가입 닉네임 중복 확인
     public void checkNickname(String nickname) {
@@ -123,6 +127,9 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
+
+        // 기본 폴더 생성 (NEWS, TERM)
+        createDefaultFolders(user);
 
         UserAuthEntity userAuth = UserAuthEntity.builder()
                 .user(user)
@@ -254,6 +261,9 @@ public class AuthService {
 
         userRepository.save(user);
 
+        // 기본 폴더 생성 (NEWS, TERM)
+        createDefaultFolders(user);
+
         UserAuthEntity userAuth = UserAuthEntity.builder()
                 .user(user)
                 .identifier(kakaoId)
@@ -347,5 +357,24 @@ public class AuthService {
         if (!password.matches(passwordRegex)) {
             throw new AuthException(AuthErrorCode.INVALID_PASSWORD_FORMAT);
         }
+    }
+
+    // 기본 폴더 생성 (NEWS, TERM)
+    private void createDefaultFolders(UserEntity user) {
+        FolderEntity newsFolder = FolderEntity.builder()
+                .user(user)
+                .folderType(FolderType.NEWS)
+                .folderName("기본")
+                .sortOrder(1)
+                .build();
+        folderRepository.save(newsFolder);
+
+        FolderEntity termFolder = FolderEntity.builder()
+                .user(user)
+                .folderType(FolderType.TERM)
+                .folderName("기본")
+                .sortOrder(1)
+                .build();
+        folderRepository.save(termFolder);
     }
 }
