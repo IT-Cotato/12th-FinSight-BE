@@ -13,6 +13,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOrigins(
                         "https://12th-fin-sight-fe.vercel.app",
                         "https://develop-12th-fin-sight-fe.vercel.app",
+                        "https://finsight-deploy.duckdns.org",
                         "http://localhost:3000", // React나 Next.js 로컬 포트
                         "http://localhost:5173"  // Vite 로컬 포트
                 )
