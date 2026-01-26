@@ -1,0 +1,11 @@
+package com.finsight.finsight.domain.quiz.exception;
+
+import com.finsight.finsight.domain.quiz.exception.code.QuizErrorCode;
+import com.finsight.finsight.global.exception.BaseException;
+
+public class QuizException extends BaseException {
+    
+    public QuizException(QuizErrorCode errorCode) {
+        super(errorCode);
+    }
+}
