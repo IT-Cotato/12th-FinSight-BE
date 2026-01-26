@@ -29,7 +29,7 @@ public class InterestCategoryController {
 
     @PostMapping
     @Operation(
-            summary = "관심분야 저장",
+            summary = "관심분야 저장 및 수정",
             description = """
                     사용자의 관심분야를 저장합니다.
 
