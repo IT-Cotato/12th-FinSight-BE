@@ -56,6 +56,20 @@ public class UserEntity {
         this.nickname = nickname;
     }
 
+    /**
+     * 경험치 추가 및 레벨 계산
+     * 레벨 N→N+1 필요 경험치: N × 100
+     */
+    public void addExp(int amount) {
+        this.exp += amount;
+        
+        int requiredExp = this.level * 100;
+        if (this.exp >= requiredExp) {
+            this.exp -= requiredExp;
+            this.level++;
+        }
+    }
+
     @PreUpdate
     protected void updateTimestamp() {
         this.updatedAt = LocalDateTime.now();
