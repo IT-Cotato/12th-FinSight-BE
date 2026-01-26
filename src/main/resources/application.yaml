@@ -1,3 +1,13 @@
+server:
+  # Nginx(Proxy)가 넘겨주는 HTTPS 헤더 정보를 인식하게 함
+  forward-headers-strategy: native
+  servlet:
+    session:
+      cookie:
+        # HTTPS 환경에서만 쿠키가 전송되도록 보안 강화
+        secure: true
+        http-only: true
+
 spring:
   application:
     name: finsight
