@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-@RequestMapping("api/v1/news")
+@RequestMapping("api/news")
 public class LearningController {
 
     private final NewsQueryService newsQueryService;

@@ -29,7 +29,7 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-@RequestMapping("/api/v1/admin/ai/jobs")
+@RequestMapping("/api/admin/ai/jobs")
 @Tag(name = "AI Admin", description = "AI Job 관리자 API")
 public class AiAdminController {
 
