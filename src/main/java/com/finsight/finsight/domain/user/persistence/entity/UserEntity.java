@@ -52,6 +52,10 @@ public class UserEntity {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
     @PreUpdate
     protected void updateTimestamp() {
         this.updatedAt = LocalDateTime.now();

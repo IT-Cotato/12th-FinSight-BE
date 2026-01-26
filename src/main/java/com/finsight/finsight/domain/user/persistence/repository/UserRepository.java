@@ -7,4 +7,6 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     // 닉네임 중복 확인
     boolean existsByNickname(String nickname);
+
+    UserEntity findUserEntityByUserId(Long userId);
 }
