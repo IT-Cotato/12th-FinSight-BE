@@ -8,9 +8,14 @@ import com.finsight.finsight.domain.home.application.dto.response.HomeResponseDT
 import com.finsight.finsight.domain.naver.domain.constant.NaverEconomySection;
 import com.finsight.finsight.domain.naver.persistence.entity.NaverArticleEntity;
 import com.finsight.finsight.domain.naver.persistence.repository.NaverArticleRepository;
+import com.finsight.finsight.domain.quiz.persistence.repository.QuizAttemptRepository;
+import com.finsight.finsight.domain.storage.persistence.entity.FolderItemEntity;
+import com.finsight.finsight.domain.storage.persistence.entity.FolderType;
+import com.finsight.finsight.domain.storage.persistence.repository.FolderItemRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +31,8 @@ public class HomeNewsService {
     private final NaverArticleRepository naverArticleRepository;
     private final UserCategoryRepository userCategoryRepository;
     private final AiTermCardRepository aiTermCardRepository;
+    private final FolderItemRepository folderItemRepository;
+    private final QuizAttemptRepository quizAttemptRepository;
 
     private static final int CATEGORY_COUNT = NaverEconomySection.values().length; // 8
     private static final int PERSONALIZED_NEWS_SIZE = 8;
@@ -295,5 +302,49 @@ public class HomeNewsService {
         }
 
         return result;
+    }
+
+    /**
+     * 홈 상태 메시지 조회
+     */
+    public HomeResponseDTO.HomeStatusResponse getHomeStatus(Long userId) {
+        // 1. 최근 보관한 뉴스 최대 5개 조회 (FolderItemRepository 활용)
+        List<FolderItemEntity> recentSavedItems = folderItemRepository.findByUserIdAndItemType(
+                userId, FolderType.NEWS, PageRequest.of(0, 5)
+        ).getContent();
+
+        int a = recentSavedItems.size();
+        if (a == 0) {
+            return HomeResponseDTO.HomeStatusResponse.builder()
+                    .message("아직 보관한 뉴스가 없어요. 뉴스를 읽고 저장해보세요.")
+                    .savedCount(0)
+                    .unsolvedCount(0)
+                    .build();
+        }
+
+        // 2. 보관된 기사 ID 추출
+        List<Long> articleIds = recentSavedItems.stream()
+                .map(FolderItemEntity::getItemId)
+                .toList();
+
+        // 3. 그중 풀이가 완료된 기사 ID 목록 조회 (N+1 방지)
+        List<Long> solvedArticleIds = quizAttemptRepository.findSolvedArticleIds(userId, articleIds);
+
+        // 4. 안 푼 뉴스 개수(b) 계산
+        int b = a - solvedArticleIds.size();
+
+        // 5. 메시지 구성
+        String message;
+        if (b > 0) {
+            message = String.format("최근에 보관한 %d개 뉴스 중, 아직 퀴즈를 풀지 않은 뉴스 %d개를 풀어봐요.", a, b);
+        } else {
+            message = String.format("최근에 보관한 뉴스 %d개의 퀴즈를 모두 풀었어요. 새로운 뉴스를 저장해서 계속 넓혀가 볼까요?", a);
+        }
+
+        return HomeResponseDTO.HomeStatusResponse.builder()
+                .message(message)
+                .savedCount(a)
+                .unsolvedCount(b)
+                .build();
     }
 }

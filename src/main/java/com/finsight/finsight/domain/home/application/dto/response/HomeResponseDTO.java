@@ -58,4 +58,16 @@ public class HomeResponseDTO {
             @Schema(description = "용어명")
             String displayName) {
     }
+
+    @Schema(name = "HomeStatusResponse", description = "홈 화면 상태 메시지 응답")
+    @Builder
+    public record HomeStatusResponse(
+            @Schema(description = "상태 메시지 문구")
+            String message,
+            @Schema(description = "최근 보관한 뉴스 개수 (a)")
+            int savedCount,
+            @Schema(description = "그중 미풀이 뉴스 개수 (b)")
+            int unsolvedCount
+    ) {
+    }
 }
