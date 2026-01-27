@@ -70,4 +70,12 @@ public class HomeResponseDTO {
             int unsolvedCount
     ) {
     }
+
+    @Schema(name = "DailyChecklistResponse")
+    @Builder
+    public record DailyChecklistResponse(
+            boolean isNewsSaved,    // 뉴스 1개 저장하기
+            boolean isQuizSolved,   // 퀴즈 1개 풀기
+            boolean isQuizReviewed  // 보관한 퀴즈 복습하기
+    ) {}
 }

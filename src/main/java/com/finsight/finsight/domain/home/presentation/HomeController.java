@@ -99,4 +99,26 @@ public class HomeController {
                 DataResponse.from(homeNewsService.getHomeStatus(userDetails.getUserId()))
         );
     }
+
+    @Operation(
+            summary = "일일 체크리스트 조회",
+            description = """
+                    오늘의 일일 미션 달성 여부를 조회합니다.
+                    1. 뉴스 1개 저장하기
+                    2. 퀴즈 1개 풀기 (신규)
+                    3. 보관한 퀴즈 복습하기 (기존 기록 업데이트)
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "체크리스트 조회 성공"),
+            @ApiResponse(responseCode = "403", description = "접근 권한 없음")
+    })
+    @GetMapping("/checklist")
+    public ResponseEntity<DataResponse<HomeResponseDTO.DailyChecklistResponse>> getDailyChecklist(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ResponseEntity.ok(
+                DataResponse.from(homeNewsService.getDailyChecklist(userDetails.getUserId()))
+        );
+    }
 }

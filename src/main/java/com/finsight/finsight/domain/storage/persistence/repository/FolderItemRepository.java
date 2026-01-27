@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -108,4 +109,10 @@ public interface FolderItemRepository extends JpaRepository<FolderItemEntity, Lo
             @Param("userId") Long userId,
             @Param("query") String query,
             Pageable pageable);
+
+    // ========== 일일퀘스트 ==========
+    // 오늘 뉴스 저장 여부 확인
+    // savedAt이 특정 시점(오늘 00시) 이후인 기록이 있는지 확인합니다.
+    @Query("SELECT COUNT(fi) > 0 FROM FolderItemEntity fi WHERE fi.folder.user.userId = :userId AND fi.itemType = :itemType AND fi.savedAt >= :since")
+    boolean existsByUserIdAndItemTypeAndSavedAtAfter(@Param("userId") Long userId, @Param("itemType") FolderType itemType, @Param("since") LocalDateTime since);
 }

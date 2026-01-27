@@ -20,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -345,6 +347,35 @@ public class HomeNewsService {
                 .message(message)
                 .savedCount(a)
                 .unsolvedCount(b)
+                .build();
+    }
+
+    /**
+     * 일일 퀘스트 조회
+     */
+    public HomeResponseDTO.DailyChecklistResponse getDailyChecklist(Long userId) {
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
+
+        // 1. 뉴스 1개 저장하기 여부
+        // 조건: 오늘 savedAt이 기록된 NEWS 타입 폴더 아이템이 존재하는가?
+        // (재저장/카테고리 변경 시 savedAt이 업데이트된다고 가정)
+        boolean isNewsSaved = folderItemRepository.existsByUserIdAndItemTypeAndSavedAtAfter(
+                userId, FolderType.NEWS, startOfToday);
+
+        // 2. 퀴즈 1개 풀기 여부
+        // 조건: 오늘 attemptedAt이 기록된 퀴즈 중, '처음' 푼 기록인가?
+        // (QuizAttemptEntity의 createdAt과 attemptedAt이 오늘로 동일한 경우 = 신규 풀이)
+        boolean isQuizSolved = quizAttemptRepository.existsNewAttemptToday(userId, startOfToday);
+
+        // 3. 보관한 퀴즈 복습하기 여부
+        // 조건: 오늘 attemptedAt이 기록된 퀴즈 중, 이미 과거에 풀었던 기록을 업데이트한 경우인가?
+        // (QuizAttemptEntity의 updateAttempt 메서드가 호출되어 attemptedAt만 오늘인 경우)
+        boolean isQuizReviewed = quizAttemptRepository.existsReviewAttemptToday(userId, startOfToday);
+
+        return HomeResponseDTO.DailyChecklistResponse.builder()
+                .isNewsSaved(isNewsSaved)
+                .isQuizSolved(isQuizSolved)
+                .isQuizReviewed(isQuizReviewed)
                 .build();
     }
 }
