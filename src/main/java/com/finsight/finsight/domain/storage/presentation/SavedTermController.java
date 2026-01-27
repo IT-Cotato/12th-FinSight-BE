@@ -37,7 +37,7 @@ public class SavedTermController {
     public ResponseEntity<DataResponse<SavedTermListResponse>> getSavedTerms(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam Long folderId,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         SavedTermListResponse response = savedTermService.getSavedTerms(
@@ -50,7 +50,7 @@ public class SavedTermController {
     public ResponseEntity<DataResponse<SavedTermListResponse>> searchSavedTerms(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam String q,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         SavedTermListResponse response = savedTermService.searchSavedTerms(

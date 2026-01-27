@@ -38,7 +38,7 @@ public class SavedNewsController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam Long folderId,
             @RequestParam(required = false) String section,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "4") int size
     ) {
         SavedNewsListResponse response = savedNewsService.getSavedNews(
@@ -51,7 +51,7 @@ public class SavedNewsController {
     public ResponseEntity<DataResponse<SavedNewsListResponse>> searchSavedNews(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam String q,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "4") int size
     ) {
         SavedNewsListResponse response = savedNewsService.searchSavedNews(

@@ -81,7 +81,8 @@ public class SavedNewsService {
      * 저장된 뉴스 목록 조회
      */
     public SavedNewsListResponse getSavedNews(Long userId, Long folderId, String section, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        int internalPage = Math.max(0, page - 1);
+        Pageable pageable = PageRequest.of(internalPage, size);
 
         // 1. 폴더 조회 (필수)
         FolderEntity folder = folderRepository.findById(folderId)
@@ -132,7 +133,8 @@ public class SavedNewsService {
      * 저장된 뉴스 검색
      */
     public SavedNewsListResponse searchSavedNews(Long userId, String query, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        int internalPage = Math.max(0, page - 1);
+        Pageable pageable = PageRequest.of(internalPage, size);
 
         // 1. 검색 (JOIN 쿼리로 한 번에)
         Page<Object[]> resultPage = folderItemRepository.searchSavedNewsByQuery(userId, query, pageable);

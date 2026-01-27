@@ -80,7 +80,8 @@ public class SavedTermService {
      * 저장된 용어 목록 조회
      */
     public SavedTermListResponse getSavedTerms(Long userId, Long folderId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        int internalPage = Math.max(0, page - 1);
+        Pageable pageable = PageRequest.of(internalPage, size);
 
         // 1. 폴더 조회
         FolderEntity folder = folderRepository.findById(folderId)
@@ -117,7 +118,8 @@ public class SavedTermService {
      * 저장된 용어 검색
      */
     public SavedTermListResponse searchSavedTerms(Long userId, String query, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        int internalPage = Math.max(0, page - 1);
+        Pageable pageable = PageRequest.of(internalPage, size);
 
         // 1. 검색
         Page<Object[]> resultPage = folderItemRepository.searchSavedTermsByQuery(userId, query, pageable);
