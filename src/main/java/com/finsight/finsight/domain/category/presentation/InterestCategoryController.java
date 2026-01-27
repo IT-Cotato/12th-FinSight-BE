@@ -1,6 +1,8 @@
 package com.finsight.finsight.domain.category.presentation;
 
 import com.finsight.finsight.domain.category.application.dto.request.SaveCategoryRequest;
+import com.finsight.finsight.domain.category.application.dto.request.UpdateCategoryOrderRequest;
+import com.finsight.finsight.domain.category.application.dto.response.CategoryOrderResponse;
 import com.finsight.finsight.domain.category.application.dto.response.CategoryResponse;
 import com.finsight.finsight.domain.category.domain.service.CategoryService;
 import com.finsight.finsight.global.response.DataResponse;
@@ -166,5 +168,24 @@ public class InterestCategoryController {
     ) {
         CategoryResponse response = categoryService.getCategories(userDetails.getUserId());
         return ResponseEntity.ok(DataResponse.from(response));
+    }
+
+    @GetMapping("/order")
+    @Operation(summary = "카테고리 순서 조회", description = "사용자의 카테고리 순서를 조회합니다. 설정 안 했으면 기본 순서 반환")
+    public ResponseEntity<DataResponse<CategoryOrderResponse>> getCategoryOrder(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        CategoryOrderResponse response = categoryService.getCategoryOrder(userDetails.getUserId());
+        return ResponseEntity.ok(DataResponse.from(response));
+    }
+
+    @PutMapping("/order")
+    @Operation(summary = "카테고리 순서 변경", description = "사용자의 카테고리 순서를 변경합니다.")
+    public ResponseEntity<DataResponse<Void>> updateCategoryOrder(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody UpdateCategoryOrderRequest request
+    ) {
+        categoryService.updateCategoryOrder(userDetails.getUserId(), request);
+        return ResponseEntity.ok(DataResponse.ok());
     }
 }
