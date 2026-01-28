@@ -44,7 +44,11 @@ public class QuizAttemptEntity {
     @Column(name = "score", nullable = false)
     private Integer score;
 
-    /** 풀이 시각 */
+    /** 최초 풀이 시각 (생성 시 고정) */
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    /** 풀이 시각 (복습시 업데이트) */
     @Column(name = "attempted_at", nullable = false)
     private LocalDateTime attemptedAt;
 
@@ -56,6 +60,7 @@ public class QuizAttemptEntity {
         this.answersJson = answersJson;
         this.correctCount = correctCount;
         this.score = score;
+        this.createdAt = LocalDateTime.now();
         this.attemptedAt = LocalDateTime.now();
     }
 
