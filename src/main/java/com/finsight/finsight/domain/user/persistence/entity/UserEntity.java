@@ -4,6 +4,7 @@ import com.finsight.finsight.domain.user.domain.constant.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +45,13 @@ public class UserEntity {
     @Column(nullable = false)
     private Integer exp = 0;
 
+    @Column(name = "last_attendance_date")
+    private LocalDate lastAttendanceDate;
+
+    @Builder.Default
+    @Column(name = "attendance_count", nullable = false)
+    private Long attendanceCount = 0L;
+
     @Builder.Default
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -67,6 +75,18 @@ public class UserEntity {
         if (this.exp >= requiredExp) {
             this.exp -= requiredExp;
             this.level++;
+        }
+    }
+
+    /**
+     * 로그인 시 출석 체크
+     * 오늘 날짜가 마지막 출석 날짜와 다르면 출석 카운트 증가
+     */
+    public void incrementAttendance() {
+        LocalDate today = LocalDate.now();
+        if (this.lastAttendanceDate == null || !this.lastAttendanceDate.equals(today)) {
+            this.lastAttendanceDate = today;
+            this.attendanceCount++;
         }
     }
 
