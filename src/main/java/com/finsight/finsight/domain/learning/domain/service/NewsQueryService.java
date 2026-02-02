@@ -39,9 +39,9 @@ public class NewsQueryService {
     private final AiArticleSummaryRepository aiArticleSummaryRepository;
     private final LearningConverter learningConverter;
 
-
     // 일반 뉴스 리스트 조회
-    public LearningResponseDTO.NewListResponse getNewsList(Category category, SortType sort, int size, String cursorStr) {
+    public LearningResponseDTO.NewListResponse getNewsList(Category category, SortType sort, int size,
+            String cursorStr) {
         // 1. 커서 디코딩
         CursorParser.NewsCursor cursor = cursorParser.decode(cursorStr);
 
@@ -76,10 +76,12 @@ public class NewsQueryService {
     }
 
     // 검색 뉴스 리스트 조회
-    public LearningResponseDTO.SearchNewsResponse searchNews(String keyword, SortType sort, int page) {
+    public LearningResponseDTO.SearchNewsResponse searchNews(String keyword, Category category, SortType sort,
+            int page) {
         int size = 4;
 
-        Page<NaverArticleEntity> articlePage = naverArticleRepository.findSearchNews(sort, page, size, keyword);
+        Page<NaverArticleEntity> articlePage = naverArticleRepository.findSearchNews(category, sort, page, size,
+                keyword);
 
         // 현재 페이지의 콘텐츠 추출
         List<NaverArticleEntity> content = articlePage.getContent();
@@ -95,8 +97,7 @@ public class NewsQueryService {
                 articlePage.getTotalElements(),
                 articlePage.getTotalPages(),
                 page,
-                size
-        );
+                size);
     }
 
     // 상세 뉴스 반환
