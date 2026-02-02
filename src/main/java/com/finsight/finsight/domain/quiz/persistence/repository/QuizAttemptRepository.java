@@ -28,7 +28,64 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttemptEntity, 
     boolean existsNewAttemptToday(@Param("userId") Long userId, @Param("startOfToday") LocalDateTime startOfToday);
 
     // 일일퀘스트 : 오늘 '복습'을 완료했는지 확인
-    // 오늘 다시 풀었지만(attemptedAt), 실제 데이터 생성일(createdAt)은 오늘 이전인 경우입니다.
-    @Query("SELECT COUNT(qa) > 0 FROM QuizAttemptEntity qa WHERE qa.user.userId = :userId AND qa.attemptedAt >= :startOfToday AND qa.createdAt < :startOfToday")
+    // 보관함에 있는 뉴스의 퀴즈를 오늘 풀었는지 확인 (MyPage 로직과 통일)
+    @Query("""
+                SELECT COUNT(qa) > 0
+                FROM QuizAttemptEntity qa
+                JOIN qa.quizSet qs
+                JOIN FolderItemEntity fi ON fi.itemId = qs.article.id AND fi.itemType = com.finsight.finsight.domain.storage.persistence.entity.FolderType.NEWS
+                WHERE qa.user.userId = :userId
+                AND fi.folder.user.userId = :userId
+                AND qa.attemptedAt >= :startOfToday
+            """)
     boolean existsReviewAttemptToday(@Param("userId") Long userId, @Param("startOfToday") LocalDateTime startOfToday);
+
+    /** 누적 퀴즈 풀이 횟수 */
+    Long countByUserUserId(Long userId);
+
+    /** 누적 퀴즈 복습 횟수 (보관함에 저장된 뉴스의 퀴즈를 푼 횟수) */
+    @Query("""
+                SELECT COUNT(DISTINCT qa.id)
+                FROM QuizAttemptEntity qa
+                JOIN qa.quizSet qs
+                JOIN FolderItemEntity fi ON fi.itemId = qs.article.id AND fi.itemType = com.finsight.finsight.domain.storage.persistence.entity.FolderType.NEWS
+                WHERE qa.user.userId = :userId AND fi.folder.user.userId = :userId
+            """)
+    Long countReviewsByUserId(@Param("userId") Long userId);
+
+    /** 주차별 일별 퀴즈 풀이 횟수 (Native Query) */
+    @Query(value = """
+                SELECT TRUNC(attempted_at) as activity_date, COUNT(*) as count
+                FROM quiz_attempt
+                WHERE user_id = :userId
+                AND attempted_at BETWEEN :startDate AND :endDate
+                GROUP BY TRUNC(attempted_at)
+                ORDER BY TRUNC(attempted_at)
+            """, nativeQuery = true)
+    List<Object[]> findDailyQuizCountByWeek(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    /** 주차별 퀴즈 풀이 목록 조회 (JPQL) */
+    @Query("SELECT qa FROM QuizAttemptEntity qa WHERE qa.user.userId = :userId AND qa.attemptedAt BETWEEN :startDate AND :endDate")
+    List<QuizAttemptEntity> findAttemptsByWeek(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    /** 주차별 퀴즈 복습 목록 조회 (JPQL) */
+    @Query("""
+                SELECT qa
+                FROM QuizAttemptEntity qa
+                JOIN qa.quizSet qs
+                JOIN FolderItemEntity fi ON fi.itemId = qs.article.id AND fi.itemType = com.finsight.finsight.domain.storage.persistence.entity.FolderType.NEWS
+                WHERE qa.user.userId = :userId
+                AND fi.folder.user.userId = :userId
+                AND qa.attemptedAt BETWEEN :startDate AND :endDate
+            """)
+    List<QuizAttemptEntity> findReviewAttemptsByWeek(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
 }

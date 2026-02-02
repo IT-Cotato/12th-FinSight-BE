@@ -75,6 +75,40 @@ public interface FolderItemRepository extends JpaRepository<FolderItemEntity, Lo
             @Param("query") String query,
             Pageable pageable);
 
+    /**
+     * 사용자가 저장한 특정 타입의 아이템 개수
+     */
+    @Query("SELECT COUNT(fi) FROM FolderItemEntity fi WHERE fi.folder.user.userId = :userId AND fi.itemType = :itemType")
+    Long countByUserIdAndItemType(
+                        @Param("userId") Long userId,
+                        @Param("itemType") FolderType itemType);
+
+   /**
+    * 주차별 저장된 아이템 목록 조회 (JPQL)
+    */
+    @Query("SELECT fi FROM FolderItemEntity fi WHERE fi.folder.user.userId = :userId AND fi.itemType = :itemType AND fi.savedAt BETWEEN :startDate AND :endDate")
+    List<FolderItemEntity> findSavedItemsByWeek(
+                        @Param("userId") Long userId,
+                        @Param("itemType") FolderType itemType,
+                        @Param("startDate") java.time.LocalDateTime startDate,
+                        @Param("endDate") java.time.LocalDateTime endDate);
+
+    /**
+     * 주차별 카테고리별 저장된 뉴스 개수 (학습 리포트용)
+     */
+    @Query(value = "SELECT n.section, COUNT(*) as count " +
+                        "FROM folder_items f " +
+                        "JOIN naver_articles n ON f.item_id = n.id " +
+                        "WHERE f.folder_id IN (SELECT folder_id FROM folders WHERE user_id = :userId) " +
+                        "AND f.item_type = 'NEWS' " +
+                        "AND f.saved_at BETWEEN :startDate AND :endDate " +
+                        "GROUP BY n.section " +
+                        "ORDER BY count DESC", nativeQuery = true)
+    List<Object[]> findSavedNewsCategoryBalanceByWeek(
+                        @Param("userId") Long userId,
+                        @Param("startDate") java.time.LocalDateTime startDate,
+                        @Param("endDate") java.time.LocalDateTime endDate);
+
     // 폴더 수정용 - 해당 뉴스의 모든 연결 삭제
     @Modifying
     @Query("DELETE FROM FolderItemEntity fi WHERE fi.folder.user.userId = :userId AND fi.itemType = :itemType AND fi.itemId = :itemId")
