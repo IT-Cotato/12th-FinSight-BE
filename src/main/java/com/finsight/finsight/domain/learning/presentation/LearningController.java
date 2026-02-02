@@ -17,10 +17,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+
+import com.finsight.finsight.global.security.CustomUserDetails;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
@@ -55,9 +54,14 @@ public class LearningController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "상세 뉴스 조회 성공")
     })
     @GetMapping("/{newsId}")
-    public ResponseEntity<DataResponse<LearningResponseDTO.NewsDetailResponse>> getNews(@PathVariable Long newsId) {
+    public ResponseEntity<DataResponse<LearningResponseDTO.NewsDetailResponse>> getNews(
+                    @AuthenticationPrincipal CustomUserDetails customUserDetails,
+                    @PathVariable Long newsId) {
+
+        Long userId = (customUserDetails != null) ? customUserDetails.getUserId() : null;
+
         // 조회수 증가
-        articleViewService.incrementViewCount(newsId);
+        articleViewService.incrementViewCount(newsId, userId);
 
         return ResponseEntity.ok(
                 DataResponse.from(newsQueryService.getNewsDetails(newsId)));
