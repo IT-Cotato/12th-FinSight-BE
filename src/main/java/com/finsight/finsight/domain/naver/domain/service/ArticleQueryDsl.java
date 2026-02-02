@@ -17,11 +17,10 @@ public interface ArticleQueryDsl {
             Category category,
             SortType sort,
             int size,
-            CursorParser.NewsCursor cursor
-    );
+            CursorParser.NewsCursor cursor);
 
     // 페이지 기반 검색 결과
-    Page<NaverArticleEntity> findSearchNews(SortType sort, int page, int size, String keyword);
+    Page<NaverArticleEntity> findSearchNews(Category category, SortType sort, int page, int size, String keyword);
 
     // 카테고리별 인기순 상위 N개 조회 (홈 인기뉴스용)
     List<NaverArticleEntity> findTopPopularBySection(NaverEconomySection section, int limit);

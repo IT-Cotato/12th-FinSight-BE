@@ -32,31 +32,37 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl {
         // 인기순 최신순 반환 API
         @Override
         public List<NaverArticleEntity> findNewsByCondition(
-                Category category,
-                SortType sort,
-                int size,
-                CursorParser.NewsCursor cursor
-        ) {
+                        Category category,
+                        SortType sort,
+                        int size,
+                        CursorParser.NewsCursor cursor) {
                 // Q클래스 선언
                 QNaverArticleEntity naverArticleEntity = QNaverArticleEntity.naverArticleEntity;
 
                 Predicate predicate = buildPredicate(naverArticleEntity, category, sort, cursor);
 
                 return queryFactory
-                        .selectFrom(naverArticleEntity)
-                        .where(predicate)
-                        .orderBy(orderSpecifiers(naverArticleEntity, sort))
-                        .limit(size + 1L) // size+1: hasNext 판별용
-                        .fetch();
+                                .selectFrom(naverArticleEntity)
+                                .where(predicate)
+                                .orderBy(orderSpecifiers(naverArticleEntity, sort))
+                                .limit(size + 1L) // size+1: hasNext 판별용
+                                .fetch();
         }
 
         @Override
-        public Page<NaverArticleEntity> findSearchNews(SortType sort, int page, int size, String keyword) {
+        public Page<NaverArticleEntity> findSearchNews(Category category, SortType sort, int page, int size,
+                        String keyword) {
 
                 // Q클래스 선언
                 QNaverArticleEntity naverArticleEntity = QNaverArticleEntity.naverArticleEntity;
 
                 BooleanBuilder builder = new BooleanBuilder();
+
+                // 1) 카테고리 조건
+                if (category != null && category != Category.ALL) {
+                        NaverEconomySection section = NaverEconomySection.valueOf(category.name());
+                        builder.and(naverArticleEntity.section.eq(section));
+                }
 
                 if (keyword != null && !keyword.isBlank()) {
                         QAiTermCardEntity qAiTermCard = QAiTermCardEntity.aiTermCardEntity;
@@ -64,57 +70,59 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl {
 
                         // 제목에 포함되는 경우 또는 용어 카드 포함 또는 요약문 포함
                         builder.and(naverArticleEntity.title.contains(keyword)
-                                .or(JPAExpressions.selectOne()
-                                        .from(qAiTermCard)
-                                        .where(
-                                                qAiTermCard.article.eq(naverArticleEntity)
-                                                        .and(qAiTermCard.term.displayName.contains(keyword))
-                                        ).exists())
-                                .or(JPAExpressions.selectOne()
-                                        .from(qSummary)
-                                        .where(qSummary.article.eq(naverArticleEntity)
-                                                .and(qSummary.summaryFull.contains(keyword)
-                                                        .or(qSummary.summary3Lines.contains(keyword))))
-                                        .exists()));
+                                        .or(JPAExpressions.selectOne()
+                                                        .from(qAiTermCard)
+                                                        .where(
+                                                                        qAiTermCard.article.eq(naverArticleEntity)
+                                                                                        .and(qAiTermCard.term.displayName
+                                                                                                        .contains(keyword)))
+                                                        .exists())
+                                        .or(JPAExpressions.selectOne()
+                                                        .from(qSummary)
+                                                        .where(qSummary.article.eq(naverArticleEntity)
+                                                                        .and(qSummary.summaryFull.contains(keyword)
+                                                                                        .or(qSummary.summary3Lines
+                                                                                                        .contains(keyword))))
+                                                        .exists()));
                 }
 
                 // 용어 카드 3개 이상 조건
                 QAiTermCardEntity qAiTermCardEntity = QAiTermCardEntity.aiTermCardEntity;
                 builder.and(naverArticleEntity.id.in(
-                        JPAExpressions.select(qAiTermCardEntity.article.id)
-                                .from(qAiTermCardEntity)
-                                .groupBy(qAiTermCardEntity.article.id)
-                                .having(qAiTermCardEntity.count().goe(3L))));
+                                JPAExpressions.select(qAiTermCardEntity.article.id)
+                                                .from(qAiTermCardEntity)
+                                                .groupBy(qAiTermCardEntity.article.id)
+                                                .having(qAiTermCardEntity.count().goe(3L))));
 
                 // 퀴즈 생성 여부 (내용 퀴즈 & 용어 퀴즈)
                 QAiQuizSetEntity qAiQuizSetEntity = QAiQuizSetEntity.aiQuizSetEntity;
                 builder.and(JPAExpressions.selectOne()
-                        .from(qAiQuizSetEntity)
-                        .where(qAiQuizSetEntity.article.eq(naverArticleEntity)
-                                .and(qAiQuizSetEntity.quizKind.eq(AiJobType.QUIZ_CONTENT)))
-                        .exists());
+                                .from(qAiQuizSetEntity)
+                                .where(qAiQuizSetEntity.article.eq(naverArticleEntity)
+                                                .and(qAiQuizSetEntity.quizKind.eq(AiJobType.QUIZ_CONTENT)))
+                                .exists());
 
                 builder.and(JPAExpressions.selectOne()
-                        .from(qAiQuizSetEntity)
-                        .where(qAiQuizSetEntity.article.eq(naverArticleEntity)
-                                .and(qAiQuizSetEntity.quizKind.eq(AiJobType.QUIZ_TERM)))
-                        .exists());
+                                .from(qAiQuizSetEntity)
+                                .where(qAiQuizSetEntity.article.eq(naverArticleEntity)
+                                                .and(qAiQuizSetEntity.quizKind.eq(AiJobType.QUIZ_TERM)))
+                                .exists());
 
                 // 2. 콘텐츠 조회 (Offset 기반)
                 List<NaverArticleEntity> content = queryFactory
-                        .selectFrom(naverArticleEntity)
-                        .where(builder)
-                        .orderBy(orderSpecifiers(naverArticleEntity, sort))
-                        .offset((long) page * size)
-                        .limit(size)
-                        .fetch();
+                                .selectFrom(naverArticleEntity)
+                                .where(builder)
+                                .orderBy(orderSpecifiers(naverArticleEntity, sort))
+                                .offset((long) page * size)
+                                .limit(size)
+                                .fetch();
 
                 // 3. 전체 개수 조회
                 Long total = queryFactory
-                        .select(naverArticleEntity.count())
-                        .from(naverArticleEntity)
-                        .where(builder)
-                        .fetchOne();
+                                .select(naverArticleEntity.count())
+                                .from(naverArticleEntity)
+                                .where(builder)
+                                .fetchOne();
 
                 long totalCount = (total != null) ? total : 0L;
 
@@ -124,11 +132,10 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl {
 
         // predicate 제작, where 절 (카테고리별 / 페이지 별)
         private Predicate buildPredicate(
-                QNaverArticleEntity naverArticleEntity,
-                Category category,
-                SortType sort,
-                CursorParser.NewsCursor cursor
-        ) {
+                        QNaverArticleEntity naverArticleEntity,
+                        Category category,
+                        SortType sort,
+                        CursorParser.NewsCursor cursor) {
                 BooleanBuilder builder = new BooleanBuilder();
 
                 // 1) 카테고리 조건
@@ -145,53 +152,52 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl {
                 // 3) 용어 카드 3개 이상 조건
                 QAiTermCardEntity qAiTermCardEntity = QAiTermCardEntity.aiTermCardEntity;
                 builder.and(naverArticleEntity.id.in(
-                        JPAExpressions.select(qAiTermCardEntity.article.id)
-                                .from(qAiTermCardEntity)
-                                .groupBy(qAiTermCardEntity.article.id)
-                                .having(qAiTermCardEntity.count().goe(3L))));
+                                JPAExpressions.select(qAiTermCardEntity.article.id)
+                                                .from(qAiTermCardEntity)
+                                                .groupBy(qAiTermCardEntity.article.id)
+                                                .having(qAiTermCardEntity.count().goe(3L))));
 
                 // 4) 퀴즈 생성 여부 (내용 퀴즈 & 용어 퀴즈)
                 QAiQuizSetEntity qAiQuizSetEntity = QAiQuizSetEntity.aiQuizSetEntity;
                 builder.and(JPAExpressions.selectOne()
-                        .from(qAiQuizSetEntity)
-                        .where(qAiQuizSetEntity.article.eq(naverArticleEntity)
-                                .and(qAiQuizSetEntity.quizKind.eq(AiJobType.QUIZ_CONTENT)))
-                        .exists());
+                                .from(qAiQuizSetEntity)
+                                .where(qAiQuizSetEntity.article.eq(naverArticleEntity)
+                                                .and(qAiQuizSetEntity.quizKind.eq(AiJobType.QUIZ_CONTENT)))
+                                .exists());
 
                 builder.and(JPAExpressions.selectOne()
-                        .from(qAiQuizSetEntity)
-                        .where(qAiQuizSetEntity.article.eq(naverArticleEntity)
-                                .and(qAiQuizSetEntity.quizKind.eq(AiJobType.QUIZ_TERM)))
-                        .exists());
+                                .from(qAiQuizSetEntity)
+                                .where(qAiQuizSetEntity.article.eq(naverArticleEntity)
+                                                .and(qAiQuizSetEntity.quizKind.eq(AiJobType.QUIZ_TERM)))
+                                .exists());
 
                 return builder;
         }
 
         // 커서 조건(최신순/인기순)
-        private Predicate cursorPredicate(QNaverArticleEntity naverArticleEntity, SortType sort, CursorParser.NewsCursor cursor) {
+        private Predicate cursorPredicate(QNaverArticleEntity naverArticleEntity, SortType sort,
+                        CursorParser.NewsCursor cursor) {
                 return switch (sort) {
-                        case LATEST -> (
-                                naverArticleEntity.publishedAt.lt(cursor.lastPublishedAt())
-                                        .or(naverArticleEntity.publishedAt.eq(cursor.lastPublishedAt()).and(naverArticleEntity.id.lt(cursor.lastId())))
-                        );
+                        case LATEST -> (naverArticleEntity.publishedAt.lt(cursor.lastPublishedAt())
+                                        .or(naverArticleEntity.publishedAt.eq(cursor.lastPublishedAt())
+                                                        .and(naverArticleEntity.id.lt(cursor.lastId()))));
 
-                        case POPULARITY -> (
-                                naverArticleEntity.viewCount.lt(cursor.viewCount())
-                                        .or(naverArticleEntity.viewCount.eq(cursor.viewCount()).and(naverArticleEntity.id.lt(cursor.lastId())))
-                        );
+                        case POPULARITY -> (naverArticleEntity.viewCount.lt(cursor.viewCount())
+                                        .or(naverArticleEntity.viewCount.eq(cursor.viewCount())
+                                                        .and(naverArticleEntity.id.lt(cursor.lastId()))));
                 };
         }
 
         // 정렬하기, orderBy 절 (최신순/인기순)
         private OrderSpecifier<?>[] orderSpecifiers(QNaverArticleEntity naverArticleEntity, SortType sort) {
                 return switch (sort) {
-                        case LATEST -> new OrderSpecifier<?>[]{
-                                naverArticleEntity.publishedAt.desc(),
-                                naverArticleEntity.id.desc()
+                        case LATEST -> new OrderSpecifier<?>[] {
+                                        naverArticleEntity.publishedAt.desc(),
+                                        naverArticleEntity.id.desc()
                         };
-                        case POPULARITY -> new OrderSpecifier<?>[]{
-                                naverArticleEntity.viewCount.desc(),
-                                naverArticleEntity.id.desc()
+                        case POPULARITY -> new OrderSpecifier<?>[] {
+                                        naverArticleEntity.viewCount.desc(),
+                                        naverArticleEntity.id.desc()
                         };
                 };
         }
@@ -210,30 +216,30 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl {
 
                 // 2) 용어 카드 3개 이상 조건
                 builder.and(article.id.in(
-                        JPAExpressions.select(termCard.article.id)
-                                .from(termCard)
-                                .groupBy(termCard.article.id)
-                                .having(termCard.count().goe(3L))));
+                                JPAExpressions.select(termCard.article.id)
+                                                .from(termCard)
+                                                .groupBy(termCard.article.id)
+                                                .having(termCard.count().goe(3L))));
 
                 // 3) 퀴즈 생성 여부 (내용 퀴즈 & 용어 퀴즈)
                 builder.and(JPAExpressions.selectOne()
-                        .from(quizSet)
-                        .where(quizSet.article.eq(article)
-                                .and(quizSet.quizKind.eq(AiJobType.QUIZ_CONTENT)))
-                        .exists());
+                                .from(quizSet)
+                                .where(quizSet.article.eq(article)
+                                                .and(quizSet.quizKind.eq(AiJobType.QUIZ_CONTENT)))
+                                .exists());
 
                 builder.and(JPAExpressions.selectOne()
-                        .from(quizSet)
-                        .where(quizSet.article.eq(article)
-                                .and(quizSet.quizKind.eq(AiJobType.QUIZ_TERM)))
-                        .exists());
+                                .from(quizSet)
+                                .where(quizSet.article.eq(article)
+                                                .and(quizSet.quizKind.eq(AiJobType.QUIZ_TERM)))
+                                .exists());
 
                 return queryFactory
-                        .selectFrom(article)
-                        .where(builder)
-                        .orderBy(article.viewCount.desc(), article.id.desc())
-                        .limit(limit)
-                        .fetch();
+                                .selectFrom(article)
+                                .where(builder)
+                                .orderBy(article.viewCount.desc(), article.id.desc())
+                                .limit(limit)
+                                .fetch();
         }
 
         // 카테고리별 최신순 상위 N개 조회 (홈 맞춤뉴스용)
@@ -249,11 +255,11 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl {
                 builder.and(article.section.eq(section));
 
                 return queryFactory
-                        .selectFrom(article)
-                        .where(builder)
-                        .orderBy(article.publishedAt.desc(), article.id.desc())
-                        .limit(limit)
-                        .fetch();
+                                .selectFrom(article)
+                                .where(builder)
+                                .orderBy(article.publishedAt.desc(), article.id.desc())
+                                .limit(limit)
+                                .fetch();
         }
 
         // 전체 카테고리 최신순 상위 N개 조회 (홈 맞춤뉴스용)
@@ -266,40 +272,39 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl {
                 BooleanBuilder builder = buildAiCompletedCondition(article, termCard, quizSet);
 
                 return queryFactory
-                        .selectFrom(article)
-                        .where(builder)
-                        .orderBy(article.publishedAt.desc(), article.id.desc())
-                        .limit(limit)
-                        .fetch();
+                                .selectFrom(article)
+                                .where(builder)
+                                .orderBy(article.publishedAt.desc(), article.id.desc())
+                                .limit(limit)
+                                .fetch();
         }
 
         // AI Job 완료 조건 빌더 (용어카드 3개 이상, 퀴즈 2종 존재)
         private BooleanBuilder buildAiCompletedCondition(
-                QNaverArticleEntity article,
-                QAiTermCardEntity termCard,
-                QAiQuizSetEntity quizSet
-        ) {
+                        QNaverArticleEntity article,
+                        QAiTermCardEntity termCard,
+                        QAiQuizSetEntity quizSet) {
                 BooleanBuilder builder = new BooleanBuilder();
 
                 // 용어 카드 3개 이상 조건
                 builder.and(article.id.in(
-                        JPAExpressions.select(termCard.article.id)
-                                .from(termCard)
-                                .groupBy(termCard.article.id)
-                                .having(termCard.count().goe(3L))));
+                                JPAExpressions.select(termCard.article.id)
+                                                .from(termCard)
+                                                .groupBy(termCard.article.id)
+                                                .having(termCard.count().goe(3L))));
 
                 // 퀴즈 생성 여부 (내용 퀴즈 & 용어 퀴즈)
                 builder.and(JPAExpressions.selectOne()
-                        .from(quizSet)
-                        .where(quizSet.article.eq(article)
-                                .and(quizSet.quizKind.eq(AiJobType.QUIZ_CONTENT)))
-                        .exists());
+                                .from(quizSet)
+                                .where(quizSet.article.eq(article)
+                                                .and(quizSet.quizKind.eq(AiJobType.QUIZ_CONTENT)))
+                                .exists());
 
                 builder.and(JPAExpressions.selectOne()
-                        .from(quizSet)
-                        .where(quizSet.article.eq(article)
-                                .and(quizSet.quizKind.eq(AiJobType.QUIZ_TERM)))
-                        .exists());
+                                .from(quizSet)
+                                .where(quizSet.article.eq(article)
+                                                .and(quizSet.quizKind.eq(AiJobType.QUIZ_TERM)))
+                                .exists());
 
                 return builder;
         }
