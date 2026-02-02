@@ -20,4 +20,7 @@ public interface FolderRepository extends JpaRepository<FolderEntity, Long> {
 
     // 폴더명 중복 체크
     boolean existsByUserUserIdAndFolderTypeAndFolderName(Long userId, FolderType folderType, String folderName);
+
+    /** 사용자 탈퇴 시 연관 데이터 삭제 */
+    void deleteByUserUserId(Long userId);
 }

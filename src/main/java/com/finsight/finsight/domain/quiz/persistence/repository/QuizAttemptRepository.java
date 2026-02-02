@@ -88,4 +88,7 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttemptEntity, 
             @Param("userId") Long userId,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
+
+    /** 사용자 탈퇴 시 연관 데이터 삭제 */
+    void deleteByUserUserId(Long userId);
 }

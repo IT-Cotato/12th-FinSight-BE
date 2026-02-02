@@ -55,10 +55,26 @@ public class MypageService {
         return MypageConverter.toMypageProfileResponse(user);
     }
 
+    @Transactional
     public void withdrawMember(Long userId) {
         if (!userRepository.existsById(userId)) {
             throw new MypageException(MypageErrorCode.MEMBER_NOT_FOUND);
         }
+
+        // 1. 퀴즈 풀이 기록 삭제
+        quizAttemptRepository.deleteByUserUserId(userId);
+
+        // 2. 보관함(폴더) 및 아이템 삭제
+        folderRepository.deleteByUserUserId(userId);
+
+        // 3. 관심 카테고리 설정 삭제
+        userCategoryOrderRepository.deleteByUserUserId(userId);
+        userCategoryRepository.deleteByUserUserId(userId);
+
+        // 4. 기사 열람 기록 삭제
+        userArticleViewRepository.deleteByUserUserId(userId);
+
+        // 5. 사용자 삭제
         userRepository.deleteById(userId);
     }
 
