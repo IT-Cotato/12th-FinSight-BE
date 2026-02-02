@@ -164,6 +164,9 @@ public class AuthService {
 
         userAuth.updateRefreshToken(refreshToken, LocalDateTime.now().plusDays(30));
 
+        // 출석 체크
+        recordAttendance(userAuth.getUser());
+
         return new TokenResponse(accessToken, refreshToken);
     }
 
@@ -194,6 +197,9 @@ public class AuthService {
         String newRefreshToken = jwtUtil.createRefreshToken(email);
 
         userAuth.updateRefreshToken(newRefreshToken, LocalDateTime.now().plusDays(30));
+
+        // 출석 체크
+        recordAttendance(userAuth.getUser());
 
         return new TokenResponse(newAccessToken, newRefreshToken);
     }
@@ -235,6 +241,9 @@ public class AuthService {
         String refreshToken = jwtUtil.createRefreshToken(String.valueOf(userId));
 
         userAuth.updateRefreshToken(refreshToken, LocalDateTime.now().plusDays(30));
+
+        // 출석 체크
+        recordAttendance(userAuth.getUser());
 
         return KakaoLoginResponse.of(accessToken, refreshToken);
     }
@@ -376,5 +385,14 @@ public class AuthService {
                 .sortOrder(1)
                 .build();
         folderRepository.save(termFolder);
+    }
+
+    /**
+     * 출석 체크 (로그인 시 호출)
+     * UserEntity의 출석 카운트 증가
+     */
+    private void recordAttendance(UserEntity user) {
+        user.incrementAttendance();
+        userRepository.save(user);
     }
 }
