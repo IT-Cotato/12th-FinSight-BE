@@ -6,6 +6,7 @@ import com.finsight.finsight.domain.category.application.dto.request.SaveCategor
 import com.finsight.finsight.domain.category.domain.service.CategoryService;
 import com.finsight.finsight.domain.category.persistence.repository.UserCategoryOrderRepository;
 import com.finsight.finsight.domain.category.persistence.repository.UserCategoryRepository;
+import com.finsight.finsight.domain.mypage.application.dto.request.ChangePasswordRequest;
 import com.finsight.finsight.domain.mypage.application.dto.request.UpdateProfileRequest;
 import com.finsight.finsight.domain.mypage.application.dto.response.LearningReportResponse;
 import com.finsight.finsight.domain.mypage.application.dto.response.MypageResponse;
@@ -18,9 +19,12 @@ import com.finsight.finsight.domain.quiz.persistence.repository.QuizAttemptRepos
 import com.finsight.finsight.domain.storage.persistence.entity.FolderType;
 import com.finsight.finsight.domain.storage.persistence.repository.FolderItemRepository;
 import com.finsight.finsight.domain.storage.persistence.repository.FolderRepository;
+import com.finsight.finsight.domain.user.domain.constant.AuthType;
+import com.finsight.finsight.domain.user.persistence.entity.UserAuthEntity;
 import com.finsight.finsight.domain.user.persistence.entity.UserEntity;
 import com.finsight.finsight.domain.user.persistence.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +50,7 @@ public class MypageService {
     private final QuizAttemptRepository quizAttemptRepository;
     private final FolderRepository folderRepository;
     private final UserCategoryOrderRepository userCategoryOrderRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public MypageResponse.MemberProfileResponse getUserProfile(Long userId) {
         // db에서 조회에 실패한 경우
@@ -264,6 +269,39 @@ public class MypageService {
         }
 
         return result;
+    }
+
+    /**
+     * 비밀번호 변경 (카카오 계정 불가)
+     */
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new MypageException(MypageErrorCode.MEMBER_NOT_FOUND));
+
+        // 카카오 계정 체크 (EMAIL 타입이 없으면 카카오 전용 계정)
+        UserAuthEntity auth = user.getUserAuths().stream()
+                .filter(a -> a.getAuthType() == AuthType.EMAIL)
+                .findFirst()
+                .orElseThrow(() -> new MypageException(MypageErrorCode.KAKAO_PASSWORD_NOT_ALLOWED));
+
+        // 현재 비밀번호 확인
+        if (!passwordEncoder.matches(request.currentPassword(), auth.getPasswordHash())) {
+            throw new MypageException(MypageErrorCode.INVALID_CURRENT_PASSWORD);
+        }
+
+        // 새 비밀번호 형식 검증
+        if (!request.newPassword().matches("^(?=.*[a-zA-Z])(?=.*\\d)[a-zA-Z\\d]{6,18}$")) {
+            throw new MypageException(MypageErrorCode.INVALID_NEW_PASSWORD_FORMAT);
+        }
+
+        // 현재와 동일한지 체크
+        if (passwordEncoder.matches(request.newPassword(), auth.getPasswordHash())) {
+            throw new MypageException(MypageErrorCode.SAME_AS_CURRENT_PASSWORD);
+        }
+
+        // 비밀번호 변경
+        auth.updatePassword(passwordEncoder.encode(request.newPassword()));
     }
 
     private String getDayOfWeekKorean(DayOfWeek dayOfWeek) {
