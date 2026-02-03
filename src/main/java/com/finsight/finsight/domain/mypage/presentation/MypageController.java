@@ -1,9 +1,11 @@
 package com.finsight.finsight.domain.mypage.presentation;
 
 import com.finsight.finsight.domain.auth.application.dto.request.CheckNicknameRequest;
+import com.finsight.finsight.domain.mypage.application.dto.request.UpdateNotificationRequest;
 import com.finsight.finsight.domain.mypage.application.dto.request.UpdateProfileRequest;
 import com.finsight.finsight.domain.mypage.application.dto.response.LearningReportResponse;
 import com.finsight.finsight.domain.mypage.application.dto.response.MypageResponse;
+import com.finsight.finsight.domain.mypage.application.dto.response.NotificationResponse;
 import com.finsight.finsight.domain.mypage.domain.service.MypageService;
 import com.finsight.finsight.domain.mypage.exception.MypageException;
 import com.finsight.finsight.domain.mypage.exception.code.MypageErrorCode;
@@ -122,5 +124,36 @@ public class MypageController {
 
         return ResponseEntity.ok(
                 DataResponse.from(myPageService.getLearningReport(userId, targetMonday, targetSunday, validWeeksAgo)));
+    }
+
+    @Operation(summary = "알림 설정 조회", description = "알림 ON/OFF 상태를 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "알림 설정 조회 성공")
+    })
+    @GetMapping("/me/notification")
+    public ResponseEntity<DataResponse<NotificationResponse>> getNotificationSetting(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails
+    ) {
+        if (customUserDetails == null) {
+            throw new MypageException(MypageErrorCode.UNAUTHORIZED_ACCESS);
+        }
+        return ResponseEntity.ok(
+                DataResponse.from(myPageService.getNotificationSetting(customUserDetails.getUserId())));
+    }
+
+    @Operation(summary = "알림 설정 변경", description = "알림 ON/OFF 상태를 변경합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "알림 설정 변경 성공")
+    })
+    @PutMapping("/me/notification")
+    public ResponseEntity<DataResponse<Void>> updateNotificationSetting(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @Valid @RequestBody UpdateNotificationRequest request
+    ) {
+        if (customUserDetails == null) {
+            throw new MypageException(MypageErrorCode.UNAUTHORIZED_ACCESS);
+        }
+        myPageService.updateNotificationSetting(customUserDetails.getUserId(), request);
+        return ResponseEntity.ok(DataResponse.ok());
     }
 }

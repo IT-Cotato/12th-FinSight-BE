@@ -6,9 +6,11 @@ import com.finsight.finsight.domain.category.application.dto.request.SaveCategor
 import com.finsight.finsight.domain.category.domain.service.CategoryService;
 import com.finsight.finsight.domain.category.persistence.repository.UserCategoryOrderRepository;
 import com.finsight.finsight.domain.category.persistence.repository.UserCategoryRepository;
+import com.finsight.finsight.domain.mypage.application.dto.request.UpdateNotificationRequest;
 import com.finsight.finsight.domain.mypage.application.dto.request.UpdateProfileRequest;
 import com.finsight.finsight.domain.mypage.application.dto.response.LearningReportResponse;
 import com.finsight.finsight.domain.mypage.application.dto.response.MypageResponse;
+import com.finsight.finsight.domain.mypage.application.dto.response.NotificationResponse;
 import com.finsight.finsight.domain.mypage.exception.MypageException;
 import com.finsight.finsight.domain.mypage.exception.code.MypageErrorCode;
 import com.finsight.finsight.domain.mypage.persistence.mapper.MypageConverter;
@@ -276,5 +278,29 @@ public class MypageService {
             case SATURDAY -> "토";
             case SUNDAY -> "일";
         };
+    }
+
+    /**
+     * 알림 설정 조회
+     */
+    @Transactional(readOnly = true)
+    public NotificationResponse getNotificationSetting(Long userId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new MypageException(MypageErrorCode.MEMBER_NOT_FOUND));
+
+        return NotificationResponse.builder()
+                .enabled(user.getNotificationEnabled())
+                .build();
+    }
+
+    /**
+     * 알림 설정 변경
+     */
+    @Transactional
+    public void updateNotificationSetting(Long userId, UpdateNotificationRequest request) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new MypageException(MypageErrorCode.MEMBER_NOT_FOUND));
+
+        user.updateNotificationEnabled(request.enabled());
     }
 }
