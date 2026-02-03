@@ -33,7 +33,7 @@ public class HomeController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "인기 뉴스 조회 성공"),
-            @ApiResponse(responseCode = "403", description = "접근 권한 없음")
+            @ApiResponse(responseCode = "401", description = "접근 권한 없음(AUTH-011)")
     })
     @GetMapping("/news/popular")
     public ResponseEntity<DataResponse<HomeResponseDTO.PopularNewsResponse>> getPopularNews(
@@ -71,7 +71,7 @@ public class HomeController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "맞춤 뉴스 조회 성공"),
-            @ApiResponse(responseCode = "403", description = "접근 권한 없음")
+            @ApiResponse(responseCode = "401", description = "접근 권한 없음(AUTH-011)")
     })
     @GetMapping("/news/personalized")
     public ResponseEntity<DataResponse<HomeResponseDTO.PersonalizedNewsResponse>> getPersonalizedNews(
@@ -89,7 +89,7 @@ public class HomeController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "홈 상태 메시지 조회 성공"),
-            @ApiResponse(responseCode = "403", description = "접근 권한 없음")
+            @ApiResponse(responseCode = "401", description = "접근 권한 없음(AUTH-011)")
     })
     @GetMapping("/status")
     public ResponseEntity<DataResponse<HomeResponseDTO.HomeStatusResponse>> getHomeStatus(
@@ -111,7 +111,7 @@ public class HomeController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "체크리스트 조회 성공"),
-            @ApiResponse(responseCode = "403", description = "접근 권한 없음")
+            @ApiResponse(responseCode = "401", description = "접근 권한 없음(AUTH-011)")
     })
     @GetMapping("/checklist")
     public ResponseEntity<DataResponse<HomeResponseDTO.DailyChecklistResponse>> getDailyChecklist(
