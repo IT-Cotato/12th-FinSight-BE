@@ -24,4 +24,15 @@ public class EmailService {
         message.setText("인증번호: " + code + "\n\n3분 내에 입력해주세요.");
         mailSender.send(message);
     }
+
+    /**
+     * 학습 알림 이메일 발송
+     */
+    public void sendNotificationEmail(String email, String subject, String content) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject(subject);
+        message.setText(content);
+        mailSender.send(message);
+    }
 }
