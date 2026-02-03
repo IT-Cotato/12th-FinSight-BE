@@ -71,7 +71,8 @@ public class HomeController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "맞춤 뉴스 조회 성공"),
-            @ApiResponse(responseCode = "401", description = "접근 권한 없음(AUTH-011)")
+            @ApiResponse(responseCode = "401", description = "접근 권한 없음(AUTH-011)"),
+            @ApiResponse(responseCode = "400", description = "사용자 관심 카테고리가 아님(HOME-001)"),
     })
     @GetMapping("/news/personalized")
     public ResponseEntity<DataResponse<HomeResponseDTO.PersonalizedNewsResponse>> getPersonalizedNews(
