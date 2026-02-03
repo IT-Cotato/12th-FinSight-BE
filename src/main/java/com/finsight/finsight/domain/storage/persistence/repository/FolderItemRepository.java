@@ -149,4 +149,14 @@ public interface FolderItemRepository extends JpaRepository<FolderItemEntity, Lo
     // savedAt이 특정 시점(오늘 00시) 이후인 기록이 있는지 확인합니다.
     @Query("SELECT COUNT(fi) > 0 FROM FolderItemEntity fi WHERE fi.folder.user.userId = :userId AND fi.itemType = :itemType AND fi.savedAt >= :since")
     boolean existsByUserIdAndItemTypeAndSavedAtAfter(@Param("userId") Long userId, @Param("itemType") FolderType itemType, @Param("since") LocalDateTime since);
+
+    /**
+     * 날짜 범위 내 뉴스 저장 여부 확인
+     */
+    @Query("SELECT COUNT(fi) > 0 FROM FolderItemEntity fi WHERE fi.folder.user.userId = :userId AND fi.itemType = :itemType AND fi.savedAt BETWEEN :start AND :end")
+    boolean existsByUserIdAndItemTypeAndSavedAtBetween(
+            @Param("userId") Long userId,
+            @Param("itemType") FolderType itemType,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
 }
