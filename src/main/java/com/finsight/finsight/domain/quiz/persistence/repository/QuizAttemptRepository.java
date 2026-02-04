@@ -37,6 +37,7 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttemptEntity, 
                 WHERE qa.user.userId = :userId
                 AND fi.folder.user.userId = :userId
                 AND qa.attemptedAt >= :startOfToday
+                AND qa.createdAt < :startOfToday
             """)
     boolean existsReviewAttemptToday(@Param("userId") Long userId, @Param("startOfToday") LocalDateTime startOfToday);
 
