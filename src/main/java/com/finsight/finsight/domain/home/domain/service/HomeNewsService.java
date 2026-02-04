@@ -19,6 +19,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.finsight.finsight.domain.home.exception.HomeException;
+import com.finsight.finsight.domain.home.exception.code.HomeErrorCode;
+
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -147,6 +150,16 @@ public class HomeNewsService {
         List<NaverArticleEntity> articles;
 
         if (category != null) {
+            // 사용자 관심 카테고리에 포함되는지 검증
+            boolean isUserCategory = userCategoryRepository.findByUserUserId(userId)
+                    .stream()
+                    .map(UserCategoryEntity::getSection)
+                    .anyMatch(section -> section == category);
+
+            if (!isUserCategory) {
+                throw new HomeException(HomeErrorCode.CATEGORY_NOT_IN_USER_INTEREST);
+            }
+
             // 특정 카테고리: 최신순 8개
             articles = naverArticleRepository.findTopLatestBySection(category, PERSONALIZED_NEWS_SIZE);
         } else {
