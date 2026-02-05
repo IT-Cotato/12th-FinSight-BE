@@ -9,6 +9,9 @@ import com.finsight.finsight.domain.ai.persistence.entity.AiArticleSummaryEntity
 import com.finsight.finsight.domain.ai.persistence.entity.AiArticleInsightEntity;
 
 import java.util.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,6 +23,10 @@ import org.springframework.stereotype.Component;
 public class LearningConverter {
 
     private final ObjectMapper objectMapper;
+
+    // 한국어 날짜 포맷터: "2026.01.01. 오후 4:51"
+    private static final DateTimeFormatter KOREAN_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd. a h:mm",
+            Locale.KOREAN);
 
     // 단일 엔티티 -> NewsItem DTO
     public static LearningResponseDTO.NewsItem toNewsItem(NaverArticleEntity entity, List<AiTermCardEntity> terms) {
@@ -111,11 +118,21 @@ public class LearningConverter {
                                 .build())
                         .toList())
                 .title(article.getTitle())
-                .date(article.getPublishedAt().toString())
+                .date(formatKoreanDate(article.getPublishedAt()))
+                .thumbnailUrl(article.getThumbnailUrl())
+                .originalUrl(article.getUrl())
                 .summary3Lines(parseSummary3Lines(summary.getSummary3Lines()))
                 .bodySummary(summary.getSummaryFull())
                 .insights(parseInsights(insight.getInsightJson()))
                 .build();
+    }
+
+    // LocalDateTime을 한국어 형식 날짜로 변환
+    private String formatKoreanDate(LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return "";
+        }
+        return dateTime.format(KOREAN_DATE_FORMATTER);
     }
 
     private LearningResponseDTO.Summary3Lines parseSummary3Lines(String rawText) {
