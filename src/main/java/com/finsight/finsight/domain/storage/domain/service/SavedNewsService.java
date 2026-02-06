@@ -58,16 +58,14 @@ public class SavedNewsService {
             }
         }
 
-        // 3. 이미 저장된 뉴스인지 확인
-        boolean alreadySaved = folderItemRepository.existsByUserIdAndItemTypeAndItemId(
-                userId, FolderType.NEWS, request.articleId());
-
-        if (alreadySaved) {
-            throw new StorageException(StorageErrorCode.ALREADY_SAVED);
-        }
-
-        // 4. 각 폴더에 저장
+        // 3. 각 폴더에 저장 (폴더별 중복 체크)
         for (FolderEntity folder : folders) {
+            // 해당 폴더에 이미 저장되어 있는지 확인
+            boolean alreadyInFolder = folderItemRepository.existsByFolderFolderIdAndItemTypeAndItemId(
+                    folder.getFolderId(), FolderType.NEWS, request.articleId());
+            if (alreadyInFolder) {
+                throw new StorageException(StorageErrorCode.ALREADY_SAVED);
+            }
             FolderItemEntity item = FolderItemEntity.builder()
                     .folder(folder)
                     .itemType(FolderType.NEWS)
