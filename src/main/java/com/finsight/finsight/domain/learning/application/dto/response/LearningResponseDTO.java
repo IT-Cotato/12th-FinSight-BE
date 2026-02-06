@@ -61,6 +61,8 @@ public class LearningResponseDTO {
                         List<CoreTerm> coreTerms,
                         String title,
                         String date,
+                        String thumbnailUrl,
+                        String originalUrl,
                         Summary3Lines summary3Lines,
                         String bodySummary,
                         List<Insight> insights) {

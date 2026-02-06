@@ -1,6 +1,7 @@
 package com.finsight.finsight.domain.mypage.presentation;
 
 import com.finsight.finsight.domain.auth.application.dto.request.CheckNicknameRequest;
+import com.finsight.finsight.domain.mypage.application.dto.request.ChangePasswordRequest;
 import com.finsight.finsight.domain.mypage.application.dto.request.UpdateNotificationRequest;
 import com.finsight.finsight.domain.mypage.application.dto.request.UpdateProfileRequest;
 import com.finsight.finsight.domain.mypage.application.dto.response.LearningReportResponse;
@@ -124,6 +125,23 @@ public class MypageController {
 
         return ResponseEntity.ok(
                 DataResponse.from(myPageService.getLearningReport(userId, targetMonday, targetSunday, validWeeksAgo)));
+    }
+
+    @Operation(summary = "비밀번호 변경", description = "현재 비밀번호를 확인 후 새 비밀번호로 변경합니다. (카카오 계정 불가)")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "비밀번호 변경 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "비밀번호 변경 실패")
+    })
+    @PutMapping("/me/change-password")
+    public ResponseEntity<DataResponse<Void>> changePassword(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        if (customUserDetails == null) {
+            throw new MypageException(MypageErrorCode.UNAUTHORIZED_ACCESS);
+        }
+        myPageService.changePassword(customUserDetails.getUserId(), request);
+        return ResponseEntity.ok(DataResponse.ok());
     }
 
     @Operation(summary = "알림 설정 조회", description = "알림 ON/OFF 상태를 조회합니다.")
