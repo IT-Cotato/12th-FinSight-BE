@@ -67,6 +67,10 @@ public class AuthController {
     @PostMapping("/logout")
     @Operation(summary = "로그아웃")
     public DataResponse<Void> logout(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            throw new com.finsight.finsight.domain.auth.exception.AuthException(
+                    com.finsight.finsight.domain.auth.exception.code.AuthErrorCode.UNAUTHORIZED);
+        }
         authService.logout(userDetails.getUsername());
         return DataResponse.ok();
     }
