@@ -115,16 +115,24 @@ public class SavedTermService {
     }
 
     /**
-     * 저장된 용어 검색
+     * 저장된 용어 검색 (특정 폴더 내에서)
      */
-    public SavedTermListResponse searchSavedTerms(Long userId, String query, int page, int size) {
+    public SavedTermListResponse searchSavedTerms(Long userId, Long folderId, String query, int page, int size) {
         int internalPage = Math.max(0, page - 1);
         Pageable pageable = PageRequest.of(internalPage, size);
 
-        // 1. 검색
-        Page<Object[]> resultPage = folderItemRepository.searchSavedTermsByQuery(userId, query, pageable);
+        // 1. 폴더 조회 및 검증
+        FolderEntity folder = folderRepository.findById(folderId)
+                .orElseThrow(() -> new StorageException(StorageErrorCode.FOLDER_NOT_FOUND));
 
-        // 2. Response 생성
+        if (!folder.getUser().getUserId().equals(userId)) {
+            throw new StorageException(StorageErrorCode.FOLDER_NOT_FOUND);
+        }
+
+        // 2. 검색
+        Page<Object[]> resultPage = folderItemRepository.searchSavedTermsByQuery(folder, query, pageable);
+
+        // 3. Response 생성
         List<SavedTermResponse> responses = resultPage.getContent().stream()
                 .map(row -> new SavedTermResponse(
                         (Long) row[0],          // savedItemId

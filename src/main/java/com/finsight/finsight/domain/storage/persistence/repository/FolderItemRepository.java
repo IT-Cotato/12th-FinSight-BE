@@ -59,19 +59,19 @@ public interface FolderItemRepository extends JpaRepository<FolderItemEntity, Lo
             @Param("section") NaverEconomySection section,
             Pageable pageable);
 
-    // 검색 (JOIN 쿼리)
+    // 검색 (JOIN 쿼리) - 특정 폴더 내에서 검색
     @Query("""
         SELECT f.folderItemId, n.id, n.title, n.press, n.section,
                n.thumbnailUrl, n.publishedAt, f.savedAt
         FROM FolderItemEntity f
         JOIN NaverArticleEntity n ON f.itemId = n.id
-        WHERE f.folder.user.userId = :userId
+        WHERE f.folder = :folder
           AND f.itemType = 'NEWS'
           AND (n.title LIKE %:query% OR n.content LIKE %:query%)
         ORDER BY f.savedAt DESC
     """)
     Page<Object[]> searchSavedNewsByQuery(
-            @Param("userId") Long userId,
+            @Param("folder") FolderEntity folder,
             @Param("query") String query,
             Pageable pageable);
 
@@ -129,18 +129,18 @@ public interface FolderItemRepository extends JpaRepository<FolderItemEntity, Lo
             @Param("folder") FolderEntity folder,
             Pageable pageable);
 
-    // 용어 검색 (JOIN 쿼리)
+    // 용어 검색 (JOIN 쿼리) - 특정 폴더 내에서 검색
     @Query("""
         SELECT f.folderItemId, t.id, t.displayName, t.definition, f.savedAt
         FROM FolderItemEntity f
         JOIN TermEntity t ON f.itemId = t.id
-        WHERE f.folder.user.userId = :userId
+        WHERE f.folder = :folder
           AND f.itemType = 'TERM'
           AND t.displayName LIKE %:query%
         ORDER BY f.savedAt DESC
     """)
     Page<Object[]> searchSavedTermsByQuery(
-            @Param("userId") Long userId,
+            @Param("folder") FolderEntity folder,
             @Param("query") String query,
             Pageable pageable);
 
