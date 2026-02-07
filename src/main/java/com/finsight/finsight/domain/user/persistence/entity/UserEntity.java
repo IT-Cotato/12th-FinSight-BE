@@ -54,7 +54,7 @@ public class UserEntity {
 
     @Builder.Default
     @Column(name = "notification_enabled", nullable = false)
-    private Boolean notificationEnabled = true;
+    private Boolean notificationEnabled = false;
 
     @Builder.Default
     @Column(name = "created_at", nullable = false, updatable = false)
