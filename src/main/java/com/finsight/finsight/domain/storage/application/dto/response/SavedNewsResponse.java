@@ -4,11 +4,9 @@ import java.time.LocalDateTime;
 
 public record SavedNewsResponse(
         Long savedItemId,
-        Long articleId,
+        Long newsId,
+        String category,
         String title,
-        String press,
-        String section,
         String thumbnailUrl,
-        LocalDateTime publishedAt,
         LocalDateTime savedAt
 ) {}
