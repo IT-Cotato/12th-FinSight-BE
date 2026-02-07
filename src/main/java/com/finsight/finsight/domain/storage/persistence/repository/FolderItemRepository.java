@@ -45,8 +45,7 @@ public interface FolderItemRepository extends JpaRepository<FolderItemEntity, Lo
 
     // 섹션 필터링 포함 조회 (JOIN 쿼리)
     @Query("""
-        SELECT f.folderItemId, n.id, n.title, n.press, n.section,
-               n.thumbnailUrl, n.publishedAt, f.savedAt
+        SELECT f.folderItemId, n.id, n.section, n.title, n.thumbnailUrl, f.savedAt
         FROM FolderItemEntity f
         JOIN NaverArticleEntity n ON f.itemId = n.id
         WHERE f.folder = :folder
@@ -61,8 +60,7 @@ public interface FolderItemRepository extends JpaRepository<FolderItemEntity, Lo
 
     // 검색 (JOIN 쿼리) - 특정 폴더 내에서 검색
     @Query("""
-        SELECT f.folderItemId, n.id, n.title, n.press, n.section,
-               n.thumbnailUrl, n.publishedAt, f.savedAt
+        SELECT f.folderItemId, n.id, n.section, n.title, n.thumbnailUrl, f.savedAt
         FROM FolderItemEntity f
         JOIN NaverArticleEntity n ON f.itemId = n.id
         WHERE f.folder = :folder

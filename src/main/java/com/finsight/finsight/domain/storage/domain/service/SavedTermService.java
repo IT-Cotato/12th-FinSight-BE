@@ -97,8 +97,8 @@ public class SavedTermService {
                 .map(row -> new SavedTermResponse(
                         (Long) row[0],          // savedItemId
                         (Long) row[1],          // termId
-                        (String) row[2],        // displayName
-                        (String) row[3],        // definition
+                        (String) row[2],        // term
+                        (String) row[3],        // description
                         (LocalDateTime) row[4]  // savedAt
                 ))
                 .toList();
@@ -135,8 +135,8 @@ public class SavedTermService {
                 .map(row -> new SavedTermResponse(
                         (Long) row[0],          // savedItemId
                         (Long) row[1],          // termId
-                        (String) row[2],        // displayName
-                        (String) row[3],        // definition
+                        (String) row[2],        // term
+                        (String) row[3],        // description
                         (LocalDateTime) row[4]  // savedAt
                 ))
                 .toList();

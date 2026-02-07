@@ -108,13 +108,11 @@ public class SavedNewsService {
         List<SavedNewsResponse> responses = resultPage.getContent().stream()
                 .map(row -> new SavedNewsResponse(
                         (Long) row[0],                              // savedItemId
-                        (Long) row[1],                              // articleId
-                        (String) row[2],                            // title
-                        (String) row[3],                            // press
-                        ((NaverEconomySection) row[4]).name(),      // section
-                        (String) row[5],                            // thumbnailUrl
-                        (LocalDateTime) row[6],                     // publishedAt
-                        (LocalDateTime) row[7]                      // savedAt
+                        (Long) row[1],                              // newsId
+                        ((NaverEconomySection) row[2]).name(),      // category
+                        (String) row[3],                            // title
+                        (String) row[4],                            // thumbnailUrl
+                        (LocalDateTime) row[5]                      // savedAt
                 ))
                 .toList();
 
@@ -149,13 +147,11 @@ public class SavedNewsService {
         List<SavedNewsResponse> responses = resultPage.getContent().stream()
                 .map(row -> new SavedNewsResponse(
                         (Long) row[0],                              // savedItemId
-                        (Long) row[1],                              // articleId
-                        (String) row[2],                            // title
-                        (String) row[3],                            // press
-                        ((NaverEconomySection) row[4]).name(),      // section
-                        (String) row[5],                            // thumbnailUrl
-                        (LocalDateTime) row[6],                     // publishedAt
-                        (LocalDateTime) row[7]                      // savedAt
+                        (Long) row[1],                              // newsId
+                        ((NaverEconomySection) row[2]).name(),      // category
+                        (String) row[3],                            // title
+                        (String) row[4],                            // thumbnailUrl
+                        (LocalDateTime) row[5]                      // savedAt
                 ))
                 .toList();
 
