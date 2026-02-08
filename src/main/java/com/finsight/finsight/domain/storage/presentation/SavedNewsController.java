@@ -47,15 +47,16 @@ public class SavedNewsController {
     }
 
     @GetMapping("/search")
-    @Operation(summary = "저장된 뉴스 검색", description = "저장된 뉴스에서 제목/내용으로 검색합니다.")
+    @Operation(summary = "저장된 뉴스 검색", description = "특정 폴더 내에서 저장된 뉴스를 제목/내용으로 검색합니다.")
     public ResponseEntity<DataResponse<SavedNewsListResponse>> searchSavedNews(
             @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam Long folderId,
             @RequestParam String q,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "4") int size
     ) {
         SavedNewsListResponse response = savedNewsService.searchSavedNews(
-                userDetails.getUserId(), q, page, size);
+                userDetails.getUserId(), folderId, q, page, size);
         return ResponseEntity.ok(DataResponse.from(response));
     }
 

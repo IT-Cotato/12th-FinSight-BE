@@ -37,6 +37,7 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttemptEntity, 
                 WHERE qa.user.userId = :userId
                 AND fi.folder.user.userId = :userId
                 AND qa.attemptedAt >= :startOfToday
+                AND qa.createdAt < :startOfToday
             """)
     boolean existsReviewAttemptToday(@Param("userId") Long userId, @Param("startOfToday") LocalDateTime startOfToday);
 
@@ -91,4 +92,40 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttemptEntity, 
 
     /** 사용자 탈퇴 시 연관 데이터 삭제 */
     void deleteByUserUserId(Long userId);
+
+    /**
+     * 날짜 범위 내 신규 퀴즈 풀이 여부 확인
+     */
+    @Query("SELECT COUNT(qa) > 0 FROM QuizAttemptEntity qa WHERE qa.user.userId = :userId AND qa.createdAt BETWEEN :start AND :end")
+    boolean existsNewAttemptBetween(
+            @Param("userId") Long userId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    /**
+     * 날짜 범위 내 복습 여부 확인
+     */
+    @Query("""
+        SELECT COUNT(qa) > 0
+        FROM QuizAttemptEntity qa
+        JOIN qa.quizSet qs
+        JOIN FolderItemEntity fi ON fi.itemId = qs.article.id AND fi.itemType = com.finsight.finsight.domain.storage.persistence.entity.FolderType.NEWS
+        WHERE qa.user.userId = :userId
+        AND fi.folder.user.userId = :userId
+        AND qa.attemptedAt BETWEEN :start AND :end
+        AND qa.createdAt < :start
+    """)
+    boolean existsReviewAttemptBetween(
+            @Param("userId") Long userId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    /**
+     * 날짜 범위 내 퀴즈 풀이 수
+     */
+    @Query("SELECT COUNT(qa) FROM QuizAttemptEntity qa WHERE qa.user.userId = :userId AND qa.createdAt BETWEEN :start AND :end")
+    Long countByUserIdAndCreatedAtBetween(
+            @Param("userId") Long userId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
 }

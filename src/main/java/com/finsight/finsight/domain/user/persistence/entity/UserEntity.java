@@ -53,6 +53,10 @@ public class UserEntity {
     private Long attendanceCount = 0L;
 
     @Builder.Default
+    @Column(name = "notification_enabled", nullable = false)
+    private Boolean notificationEnabled = false;
+
+    @Builder.Default
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -62,6 +66,10 @@ public class UserEntity {
 
     public void updateNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public void updateNotificationEnabled(Boolean enabled) {
+        this.notificationEnabled = enabled;
     }
 
     /**

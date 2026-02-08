@@ -43,7 +43,12 @@ public class FolderService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
-        FolderType folderType = FolderType.valueOf(request.folderType());
+        FolderType folderType;
+        try {
+            folderType = FolderType.valueOf(request.folderType());
+        } catch (IllegalArgumentException e) {
+            throw new StorageException(StorageErrorCode.FOLDER_TYPE_MISMATCH);
+        }
 
         // 폴더 개수 제한 체크
         long folderCount = folderRepository.countByUserUserIdAndFolderType(userId, folderType);
@@ -92,17 +97,38 @@ public class FolderService {
         FolderEntity folder = folderRepository.findByFolderIdAndUserUserId(folderId, userId)
                 .orElseThrow(() -> new StorageException(StorageErrorCode.FOLDER_NOT_FOUND));
 
+        FolderType folderType = folder.getFolderType();
+        int deletedOrder = folder.getSortOrder();
+
         folderRepository.delete(folder);
+
+        // 삭제된 폴더보다 뒤에 있는 폴더들 순서 재정렬
+        List<FolderEntity> remainingFolders = folderRepository.findByUserUserIdAndFolderTypeOrderBySortOrderAsc(userId, folderType);
+        int newOrder = 1;
+        for (FolderEntity f : remainingFolders) {
+            f.updateSortOrder(newOrder++);
+        }
     }
 
     // 폴더 순서 변경
     @Transactional
     public List<FolderResponse> updateFolderOrder(Long userId, UpdateFolderOrderRequest request) {
-        FolderType folderType = FolderType.valueOf(request.folderType());
+        FolderType folderType;
+        try {
+            folderType = FolderType.valueOf(request.folderType());
+        } catch (IllegalArgumentException e) {
+            throw new StorageException(StorageErrorCode.FOLDER_TYPE_MISMATCH);
+        }
 
         for (UpdateFolderOrderRequest.FolderOrder order : request.folders()) {
             FolderEntity folder = folderRepository.findByFolderIdAndUserUserId(order.folderId(), userId)
                     .orElseThrow(() -> new StorageException(StorageErrorCode.FOLDER_NOT_FOUND));
+            
+            // 폴더 타입 검증
+            if (folder.getFolderType() != folderType) {
+                throw new StorageException(StorageErrorCode.FOLDER_TYPE_MISMATCH);
+            }
+            
             folder.updateSortOrder(order.sortOrder());
         }
 

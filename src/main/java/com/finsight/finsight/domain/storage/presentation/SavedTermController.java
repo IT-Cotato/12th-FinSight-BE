@@ -46,15 +46,16 @@ public class SavedTermController {
     }
 
     @GetMapping("/search")
-    @Operation(summary = "저장된 용어 검색", description = "저장된 용어에서 용어명으로 검색합니다.")
+    @Operation(summary = "저장된 용어 검색", description = "특정 폴더 내에서 저장된 용어를 용어명으로 검색합니다.")
     public ResponseEntity<DataResponse<SavedTermListResponse>> searchSavedTerms(
             @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam Long folderId,
             @RequestParam String q,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         SavedTermListResponse response = savedTermService.searchSavedTerms(
-                userDetails.getUserId(), q, page, size);
+                userDetails.getUserId(), folderId, q, page, size);
         return ResponseEntity.ok(DataResponse.from(response));
     }
 

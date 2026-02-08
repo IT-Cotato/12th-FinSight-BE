@@ -58,16 +58,14 @@ public class SavedNewsService {
             }
         }
 
-        // 3. 이미 저장된 뉴스인지 확인
-        boolean alreadySaved = folderItemRepository.existsByUserIdAndItemTypeAndItemId(
-                userId, FolderType.NEWS, request.articleId());
-
-        if (alreadySaved) {
-            throw new StorageException(StorageErrorCode.ALREADY_SAVED);
-        }
-
-        // 4. 각 폴더에 저장
+        // 3. 각 폴더에 저장 (폴더별 중복 체크)
         for (FolderEntity folder : folders) {
+            // 해당 폴더에 이미 저장되어 있는지 확인
+            boolean alreadyInFolder = folderItemRepository.existsByFolderFolderIdAndItemTypeAndItemId(
+                    folder.getFolderId(), FolderType.NEWS, request.articleId());
+            if (alreadyInFolder) {
+                throw new StorageException(StorageErrorCode.ALREADY_SAVED);
+            }
             FolderItemEntity item = FolderItemEntity.builder()
                     .folder(folder)
                     .itemType(FolderType.NEWS)
@@ -110,13 +108,11 @@ public class SavedNewsService {
         List<SavedNewsResponse> responses = resultPage.getContent().stream()
                 .map(row -> new SavedNewsResponse(
                         (Long) row[0],                              // savedItemId
-                        (Long) row[1],                              // articleId
-                        (String) row[2],                            // title
-                        (String) row[3],                            // press
-                        ((NaverEconomySection) row[4]).name(),      // section
-                        (String) row[5],                            // thumbnailUrl
-                        (LocalDateTime) row[6],                     // publishedAt
-                        (LocalDateTime) row[7]                      // savedAt
+                        (Long) row[1],                              // newsId
+                        ((NaverEconomySection) row[2]).name(),      // category
+                        (String) row[3],                            // title
+                        (String) row[4],                            // thumbnailUrl
+                        (LocalDateTime) row[5]                      // savedAt
                 ))
                 .toList();
 
@@ -130,26 +126,32 @@ public class SavedNewsService {
     }
 
     /**
-     * 저장된 뉴스 검색
+     * 저장된 뉴스 검색 (특정 폴더 내에서)
      */
-    public SavedNewsListResponse searchSavedNews(Long userId, String query, int page, int size) {
+    public SavedNewsListResponse searchSavedNews(Long userId, Long folderId, String query, int page, int size) {
         int internalPage = Math.max(0, page - 1);
         Pageable pageable = PageRequest.of(internalPage, size);
 
-        // 1. 검색 (JOIN 쿼리로 한 번에)
-        Page<Object[]> resultPage = folderItemRepository.searchSavedNewsByQuery(userId, query, pageable);
+        // 1. 폴더 조회 및 검증
+        FolderEntity folder = folderRepository.findById(folderId)
+                .orElseThrow(() -> new StorageException(StorageErrorCode.FOLDER_NOT_FOUND));
 
-        // 2. Response 생성
+        if (!folder.getUser().getUserId().equals(userId)) {
+            throw new StorageException(StorageErrorCode.FOLDER_NOT_FOUND);
+        }
+
+        // 2. 검색 (JOIN 쿼리로 한 번에)
+        Page<Object[]> resultPage = folderItemRepository.searchSavedNewsByQuery(folder, query, pageable);
+
+        // 3. Response 생성
         List<SavedNewsResponse> responses = resultPage.getContent().stream()
                 .map(row -> new SavedNewsResponse(
                         (Long) row[0],                              // savedItemId
-                        (Long) row[1],                              // articleId
-                        (String) row[2],                            // title
-                        (String) row[3],                            // press
-                        ((NaverEconomySection) row[4]).name(),      // section
-                        (String) row[5],                            // thumbnailUrl
-                        (LocalDateTime) row[6],                     // publishedAt
-                        (LocalDateTime) row[7]                      // savedAt
+                        (Long) row[1],                              // newsId
+                        ((NaverEconomySection) row[2]).name(),      // category
+                        (String) row[3],                            // title
+                        (String) row[4],                            // thumbnailUrl
+                        (LocalDateTime) row[5]                      // savedAt
                 ))
                 .toList();
 

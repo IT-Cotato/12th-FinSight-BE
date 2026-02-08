@@ -57,16 +57,14 @@ public class SavedTermService {
             }
         }
 
-        // 3. 이미 저장된 용어인지 확인
-        boolean alreadySaved = folderItemRepository.existsByUserIdAndItemTypeAndItemId(
-                userId, FolderType.TERM, request.termId());
-
-        if (alreadySaved) {
-            throw new StorageException(StorageErrorCode.ALREADY_SAVED_TERM);
-        }
-
-        // 4. 각 폴더에 저장
+        // 3. 각 폴더에 저장 (폴더별 중복 체크)
         for (FolderEntity folder : folders) {
+            // 해당 폴더에 이미 저장되어 있는지 확인
+            boolean alreadyInFolder = folderItemRepository.existsByFolderFolderIdAndItemTypeAndItemId(
+                    folder.getFolderId(), FolderType.TERM, request.termId());
+            if (alreadyInFolder) {
+                throw new StorageException(StorageErrorCode.ALREADY_SAVED_TERM);
+            }
             FolderItemEntity item = FolderItemEntity.builder()
                     .folder(folder)
                     .itemType(FolderType.TERM)
@@ -99,8 +97,8 @@ public class SavedTermService {
                 .map(row -> new SavedTermResponse(
                         (Long) row[0],          // savedItemId
                         (Long) row[1],          // termId
-                        (String) row[2],        // displayName
-                        (String) row[3],        // definition
+                        (String) row[2],        // term
+                        (String) row[3],        // description
                         (LocalDateTime) row[4]  // savedAt
                 ))
                 .toList();
@@ -115,22 +113,30 @@ public class SavedTermService {
     }
 
     /**
-     * 저장된 용어 검색
+     * 저장된 용어 검색 (특정 폴더 내에서)
      */
-    public SavedTermListResponse searchSavedTerms(Long userId, String query, int page, int size) {
+    public SavedTermListResponse searchSavedTerms(Long userId, Long folderId, String query, int page, int size) {
         int internalPage = Math.max(0, page - 1);
         Pageable pageable = PageRequest.of(internalPage, size);
 
-        // 1. 검색
-        Page<Object[]> resultPage = folderItemRepository.searchSavedTermsByQuery(userId, query, pageable);
+        // 1. 폴더 조회 및 검증
+        FolderEntity folder = folderRepository.findById(folderId)
+                .orElseThrow(() -> new StorageException(StorageErrorCode.FOLDER_NOT_FOUND));
 
-        // 2. Response 생성
+        if (!folder.getUser().getUserId().equals(userId)) {
+            throw new StorageException(StorageErrorCode.FOLDER_NOT_FOUND);
+        }
+
+        // 2. 검색
+        Page<Object[]> resultPage = folderItemRepository.searchSavedTermsByQuery(folder, query, pageable);
+
+        // 3. Response 생성
         List<SavedTermResponse> responses = resultPage.getContent().stream()
                 .map(row -> new SavedTermResponse(
                         (Long) row[0],          // savedItemId
                         (Long) row[1],          // termId
-                        (String) row[2],        // displayName
-                        (String) row[3],        // definition
+                        (String) row[2],        // term
+                        (String) row[3],        // description
                         (LocalDateTime) row[4]  // savedAt
                 ))
                 .toList();
