@@ -9,6 +9,7 @@ import com.finsight.finsight.domain.storage.application.dto.response.FolderRespo
 import com.finsight.finsight.domain.storage.exception.StorageException;
 import com.finsight.finsight.domain.storage.exception.code.StorageErrorCode;
 import com.finsight.finsight.domain.storage.persistence.entity.FolderEntity;
+import com.finsight.finsight.domain.storage.persistence.entity.FolderItemEntity;
 import com.finsight.finsight.domain.storage.persistence.entity.FolderType;
 import com.finsight.finsight.domain.storage.persistence.repository.FolderItemRepository;
 import com.finsight.finsight.domain.storage.persistence.repository.FolderRepository;
@@ -139,5 +140,28 @@ public class FolderService {
         }
 
         return getFolders(userId, folderType);
+    }
+
+    /**
+     * 특정 아이템(뉴스/용어)이 저장된 폴더 목록 조회
+     */
+    public List<FolderResponse> getItemFolders(Long userId, String type, Long itemId) {
+        FolderType folderType;
+        try {
+            folderType = FolderType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new StorageException(StorageErrorCode.FOLDER_TYPE_MISMATCH);
+        }
+
+        List<FolderItemEntity> items = folderItemRepository.findByUserIdAndItemTypeAndItemId(
+                userId, folderType, itemId);
+
+        return items.stream()
+                .map(item -> {
+                    FolderEntity folder = item.getFolder();
+                    long itemCount = folderItemRepository.countByFolderFolderId(folder.getFolderId());
+                    return FolderResponse.from(folder, itemCount);
+                })
+                .toList();
     }
 }

@@ -77,4 +77,15 @@ public class FolderController {
         List<FolderResponse> response = folderService.updateFolderOrder(userDetails.getUserId(), request);
         return ResponseEntity.ok(DataResponse.from(response));
     }
+
+    @GetMapping("/items/{itemId}")
+    @Operation(summary = "아이템이 저장된 폴더 조회", description = "특정 뉴스/용어가 저장된 폴더 목록을 반환합니다.")
+    public ResponseEntity<DataResponse<List<FolderResponse>>> getItemFolders(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long itemId,
+            @RequestParam String type
+    ) {
+        List<FolderResponse> response = folderService.getItemFolders(userDetails.getUserId(), type, itemId);
+        return ResponseEntity.ok(DataResponse.from(response));
+    }
 }
