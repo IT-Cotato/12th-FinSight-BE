@@ -10,6 +10,7 @@ import com.finsight.finsight.domain.storage.exception.StorageException;
 import com.finsight.finsight.domain.storage.exception.code.StorageErrorCode;
 import com.finsight.finsight.domain.storage.persistence.entity.FolderEntity;
 import com.finsight.finsight.domain.storage.persistence.entity.FolderType;
+import com.finsight.finsight.domain.storage.persistence.repository.FolderItemRepository;
 import com.finsight.finsight.domain.storage.persistence.repository.FolderRepository;
 import com.finsight.finsight.domain.user.persistence.entity.UserEntity;
 import com.finsight.finsight.domain.user.persistence.repository.UserRepository;
@@ -27,13 +28,17 @@ public class FolderService {
     private static final int MAX_FOLDER_COUNT = 10;
 
     private final FolderRepository folderRepository;
+    private final FolderItemRepository folderItemRepository;
     private final UserRepository userRepository;
 
     // 폴더 목록 조회
     public List<FolderResponse> getFolders(Long userId, FolderType folderType) {
         List<FolderEntity> folders = folderRepository.findByUserUserIdAndFolderTypeOrderBySortOrderAsc(userId, folderType);
         return folders.stream()
-                .map(FolderResponse::from)
+                .map(folder -> {
+                    long itemCount = folderItemRepository.countByFolderFolderId(folder.getFolderId());
+                    return FolderResponse.from(folder, itemCount);
+                })
                 .toList();
     }
 
@@ -88,7 +93,8 @@ public class FolderService {
         }
 
         folder.updateFolderName(request.folderName());
-        return FolderResponse.from(folder);
+        long itemCount = folderItemRepository.countByFolderFolderId(folder.getFolderId());
+        return FolderResponse.from(folder, itemCount);
     }
 
     // 폴더 삭제

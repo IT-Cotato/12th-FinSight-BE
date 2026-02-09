@@ -17,6 +17,9 @@ import java.util.Optional;
 
 public interface FolderItemRepository extends JpaRepository<FolderItemEntity, Long> {
 
+    // 특정 폴더의 아이템 개수 조회
+    long countByFolderFolderId(Long folderId);
+
     // 특정 폴더의 아이템 목록 조회 (최신순)
     Page<FolderItemEntity> findByFolderFolderIdOrderBySavedAtDesc(Long folderId, Pageable pageable);
 
