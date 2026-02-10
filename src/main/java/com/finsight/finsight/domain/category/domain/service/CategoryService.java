@@ -108,6 +108,7 @@ public class CategoryService {
 
         // 기존 순서 삭제
         userCategoryOrderRepository.deleteByUserUserId(userId);
+        userCategoryOrderRepository.flush();  // 삭제 먼저 DB에 반영
 
         // 새 순서 저장
         for (UpdateCategoryOrderRequest.CategoryOrderItem item : request.orders()) {
