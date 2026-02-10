@@ -2,6 +2,7 @@ package com.finsight.finsight.domain.category.persistence.repository;
 
 import com.finsight.finsight.domain.category.persistence.entity.UserCategoryOrderEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,5 +19,6 @@ public interface UserCategoryOrderRepository extends JpaRepository<UserCategoryO
     boolean existsByUserUserId(Long userId);
 
     // 사용자의 카테고리 순서 전체 삭제
+    @Modifying
     void deleteByUserUserId(Long userId);
 }
