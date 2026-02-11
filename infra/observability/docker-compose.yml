@@ -1,12 +1,31 @@
 services:
+  # 환경변수를 적용해서 prometheus.yml 생성
+  prometheus-config:
+    image: alpine:latest
+    environment:
+      - ENVIRONMENT=local
+      - GRAFANA_REMOTE_WRITE_URL=${GRAFANA_REMOTE_WRITE_URL}
+      - GRAFANA_CLOUD_USER=${GRAFANA_CLOUD_USER}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY}
+    volumes:
+      - ./prometheus:/config
+      - prometheus_config:/output
+    command: >
+      sh -c "apk add --no-cache gettext &&
+             envsubst < /config/prometheus.yml.template > /output/prometheus.yml &&
+             cat /output/prometheus.yml &&
+             echo 'Config generated successfully'"
+    restart: "no"
+
   prometheus:
     image: prom/prometheus:latest
     container_name: finsight-prometheus
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_config:/etc/prometheus:ro
       - prometheus_data:/prometheus
-    #ports:
-    #  - "9090:9090"
+    depends_on:
+      prometheus-config:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   grafana:
@@ -22,5 +41,6 @@ services:
     restart: unless-stopped
 
 volumes:
+  prometheus_config:
   prometheus_data:
   grafana_data:

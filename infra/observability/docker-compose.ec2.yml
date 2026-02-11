@@ -1,13 +1,15 @@
 services:
+  prometheus-config:
+    environment:
+      - ENVIRONMENT=production
+
   prometheus:
-    # 운영에서 Prometheus UI 외부 공개 방지
     ports:
       - "127.0.0.1:9090:9090"
-    # EC2(Linux)에서 host.docker.internal 사용 위해
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # Grafana Cloud 사용으로 로컬 Grafana 비활성화
   grafana:
-    # Grafana는 외부에서 봐야 하니 그대로
-    ports:
-      - "3000:3000"
+    profiles:
+      - disabled
