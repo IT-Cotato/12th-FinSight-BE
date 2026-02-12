@@ -1,0 +1,64 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: ${LOKI_URL}
+    basic_auth:
+      username: ${LOKI_USER}
+      password: ${LOKI_API_KEY}
+
+scrape_configs:
+  # Docker 컨테이너 로그 수집
+  - job_name: docker-containers
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: finsight
+          environment: ${ENVIRONMENT}
+          __path__: /var/lib/docker/containers/*/*.log
+
+    pipeline_stages:
+      # Docker JSON 로그 파싱
+      - json:
+          expressions:
+            log: log
+            stream: stream
+            time: time
+
+      # 컨테이너 ID 추출 (경로에서)
+      - regex:
+          expression: '/var/lib/docker/containers/(?P<container_id>[^/]+)/'
+          source: filename
+
+      # 컨테이너 ID 라벨 추가 (앞 12자리만)
+      - template:
+          source: container_id
+          template: '{{ substr 0 12 .Value }}'
+      - labels:
+          container_id:
+
+      # Spring Boot 로그에서 레벨 추출
+      - regex:
+          expression: '^(?P<timestamp>\S+)\s+(?P<level>TRACE|DEBUG|INFO|WARN|ERROR)\s+'
+          source: log
+
+      # 로그 레벨 라벨 추가
+      - labels:
+          level:
+          stream:
+
+      # 멀티라인 처리 (스택트레이스)
+      # Java 스택트레이스는 탭이나 "at ", "Caused by:" 로 시작
+      - multiline:
+          firstline: '^\d{4}-\d{2}-\d{2}[T ]'
+          max_wait_time: 3s
+          max_lines: 128
+
+      # 최종 출력
+      - output:
+          source: log

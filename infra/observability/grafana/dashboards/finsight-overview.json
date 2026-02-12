@@ -270,6 +270,106 @@
       ],
       "title": "Crawler Duration (avg)",
       "type": "timeseries"
+    },
+    {
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 },
+      "id": 104,
+      "title": "Logs (Loki)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 31 },
+      "id": 40,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }, { "color": "red", "value": 50 }] }
+        }
+      },
+      "targets": [{ "expr": "sum(count_over_time({job=\"finsight\", environment=\"$environment\"} |= \"level=ERROR\" [1h]))", "refId": "A" }],
+      "title": "Error Logs (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 31 },
+      "id": 41,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 5 }, { "color": "red", "value": 20 }] }
+        }
+      },
+      "targets": [{ "expr": "sum(count_over_time({job=\"finsight\", environment=\"$environment\"} |= \"login_failed\" [1h]))", "refId": "A" }],
+      "title": "Login Failed (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 31 },
+      "id": 42,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [{ "expr": "sum(count_over_time({job=\"finsight\", environment=\"$environment\"} |= \"login_success\" [1h]))", "refId": "A" }],
+      "title": "Login Success (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 31 },
+      "id": 43,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [{ "expr": "sum(count_over_time({job=\"finsight\", environment=\"$environment\"} |= \"signup_success\" [1h]))", "refId": "A" }],
+      "title": "Signups (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 35 },
+      "id": 44,
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      },
+      "targets": [{ "expr": "{job=\"finsight\", environment=\"$environment\"} |= \"ERROR\" or {job=\"finsight\", environment=\"$environment\"} |= \"WARN\"", "refId": "A" }],
+      "title": "Recent Error & Warning Logs",
+      "type": "logs"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 43 },
+      "id": 45,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 50, "lineWidth": 1 }, "unit": "short" } },
+      "targets": [
+        { "expr": "sum by (level) (count_over_time({job=\"finsight\", environment=\"$environment\"} | pattern `<_> <level> <_>` [5m]))", "legendFormat": "{{level}}", "refId": "A" }
+      ],
+      "title": "Log Levels Over Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 43 },
+      "id": 46,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 }, "unit": "short" } },
+      "targets": [
+        { "expr": "sum(count_over_time({job=\"finsight\", environment=\"$environment\"} |= \"[AUTH]\" [5m]))", "legendFormat": "Auth Events", "refId": "A" },
+        { "expr": "sum(count_over_time({job=\"finsight\", environment=\"$environment\"} |= \"[OPENAI]\" [5m]))", "legendFormat": "OpenAI Events", "refId": "B" },
+        { "expr": "sum(count_over_time({job=\"finsight\", environment=\"$environment\"} |= \"[ERROR]\" [5m]))", "legendFormat": "Errors", "refId": "C" }
+      ],
+      "title": "Event Types Over Time",
+      "type": "timeseries"
     }
   ],
   "schemaVersion": 39,
@@ -280,11 +380,26 @@
         "current": { "selected": false, "text": "grafanacloud-kkshyun56-prom", "value": "grafanacloud-kkshyun56-prom" },
         "hide": 0,
         "includeAll": false,
-        "label": "Datasource",
+        "label": "Prometheus",
         "multi": false,
         "name": "datasource",
         "options": [],
         "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": { "selected": false, "text": "grafanacloud-kkshyun56-logs", "value": "grafanacloud-kkshyun56-logs" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Loki",
+        "multi": false,
+        "name": "loki_datasource",
+        "options": [],
+        "query": "loki",
         "queryValue": "",
         "refresh": 1,
         "regex": "",

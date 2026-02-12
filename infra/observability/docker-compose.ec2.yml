@@ -13,3 +13,14 @@ services:
   grafana:
     profiles:
       - disabled
+
+  # Promtail EC2 오버라이드
+  promtail-config:
+    environment:
+      - ENVIRONMENT=production
+
+  promtail:
+    volumes:
+      - promtail_config:/etc/promtail:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro

@@ -40,7 +40,39 @@ services:
       - prometheus
     restart: unless-stopped
 
+  # Promtail 설정 생성 (환경변수 치환)
+  promtail-config:
+    image: alpine:latest
+    environment:
+      - ENVIRONMENT=local
+      - LOKI_URL=${LOKI_URL}
+      - LOKI_USER=${LOKI_USER}
+      - LOKI_API_KEY=${LOKI_API_KEY}
+    volumes:
+      - ./promtail:/config
+      - promtail_config:/output
+    command: >
+      sh -c "apk add --no-cache gettext &&
+             envsubst < /config/promtail.yml.template > /output/promtail.yml &&
+             cat /output/promtail.yml &&
+             echo 'Promtail config generated successfully'"
+    restart: "no"
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: finsight-promtail
+    volumes:
+      - promtail_config:/etc/promtail:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/promtail.yml
+    depends_on:
+      promtail-config:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
 volumes:
   prometheus_config:
   prometheus_data:
+  promtail_config:
   grafana_data:
