@@ -6,7 +6,12 @@ positions:
   filename: /tmp/positions.yaml
 
 clients:
-  - url: http://loki:3100/loki/api/v1/push
+  - url: https://logs-prod-030.grafana.net/loki/api/v1/push
+    basic_auth:
+      # Grafana Cloud Loki 페이지에서 확인할 수 있는 User ID (숫자)
+      username: "${LOKI_USER}"
+      # 이전에 생성하신 Grafana Cloud API Key (또는 Token)
+      password: "${LOKI_API_KEY}"
 
 scrape_configs:
   - job_name: finsight-local
@@ -14,12 +19,11 @@ scrape_configs:
       - targets:
           - localhost
         labels:
-          job: finsight-local
+          job: finsight
           environment: local
-          __path__: /logs/*.log  # 도커 볼륨에 연결된 내부 경로
+          __path__: /logs/*.log
     pipeline_stages:
       - regex:
-          # [수정됨] 날짜와 시간 사이의 'T'를 인식하도록 수정
           expression: '^(?P<time>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}).*?(?P<level>[A-Z]{4,5})\s+.*'
       - labels:
           level:
