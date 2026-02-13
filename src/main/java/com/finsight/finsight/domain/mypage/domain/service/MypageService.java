@@ -17,6 +17,7 @@ import com.finsight.finsight.domain.mypage.exception.code.MypageErrorCode;
 import com.finsight.finsight.domain.mypage.persistence.mapper.MypageConverter;
 import com.finsight.finsight.domain.naver.domain.constant.NaverEconomySection;
 import com.finsight.finsight.domain.naver.persistence.repository.UserArticleViewRepository;
+import com.finsight.finsight.domain.notification.persistence.repository.FcmTokenRepository;
 import com.finsight.finsight.domain.quiz.persistence.repository.QuizAttemptRepository;
 import com.finsight.finsight.domain.storage.persistence.entity.FolderType;
 import com.finsight.finsight.domain.storage.persistence.repository.FolderItemRepository;
@@ -53,6 +54,7 @@ public class MypageService {
     private final FolderRepository folderRepository;
     private final UserCategoryOrderRepository userCategoryOrderRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FcmTokenRepository fcmTokenRepository;
 
     public MypageResponse.MemberProfileResponse getUserProfile(Long userId) {
         // db에서 조회에 실패한 경우
@@ -81,7 +83,10 @@ public class MypageService {
         // 4. 기사 열람 기록 삭제
         userArticleViewRepository.deleteByUserUserId(userId);
 
-        // 5. 사용자 삭제
+        //5. fcm 토큰 삭제
+        fcmTokenRepository.deleteByUserUserId(userId);
+
+        // 6. 사용자 삭제
         userRepository.deleteById(userId);
     }
 
