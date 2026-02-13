@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface QuizAttemptRepository extends JpaRepository<QuizAttemptEntity, Long> {
     
@@ -93,39 +94,34 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttemptEntity, 
     /** 사용자 탈퇴 시 연관 데이터 삭제 */
     void deleteByUserUserId(Long userId);
 
-    /**
-     * 날짜 범위 내 신규 퀴즈 풀이 여부 확인
-     */
-    @Query("SELECT COUNT(qa) > 0 FROM QuizAttemptEntity qa WHERE qa.user.userId = :userId AND qa.createdAt BETWEEN :start AND :end")
-    boolean existsNewAttemptBetween(
-            @Param("userId") Long userId,
+    // 날짜 범위 내 새로 푼 퀴즈가 있는 유저id 조회
+    @Query("SELECT DISTINCT qa.user.userId FROM QuizAttemptEntity qa " +
+            "WHERE qa.createdAt BETWEEN :start AND :end")
+    Set<Long> findUserIdsWithNewAttemptBetween(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
 
-    /**
-     * 날짜 범위 내 복습 여부 확인
-     */
-    @Query("""
-        SELECT COUNT(qa) > 0
-        FROM QuizAttemptEntity qa
-        JOIN qa.quizSet qs
-        JOIN FolderItemEntity fi ON fi.itemId = qs.article.id AND fi.itemType = com.finsight.finsight.domain.storage.persistence.entity.FolderType.NEWS
-        WHERE qa.user.userId = :userId
-        AND fi.folder.user.userId = :userId
-        AND qa.attemptedAt BETWEEN :start AND :end
-        AND qa.createdAt < :start
-    """)
-    boolean existsReviewAttemptBetween(
-            @Param("userId") Long userId,
+    // 날짜 범위 내 퀴즈 복습한 유저id 조회
+    @Query("SELECT DISTINCT qa.user.userId FROM QuizAttemptEntity qa " +
+            "WHERE qa.createdAt < :start " +
+            "AND qa.attemptedAt BETWEEN :start AND :end")
+    Set<Long> findUserIdsWithReviewAttemptBetween(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
-
     /**
      * 날짜 범위 내 퀴즈 풀이 수
      */
     @Query("SELECT COUNT(qa) FROM QuizAttemptEntity qa WHERE qa.user.userId = :userId AND qa.createdAt BETWEEN :start AND :end")
     Long countByUserIdAndCreatedAtBetween(
             @Param("userId") Long userId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    // 유저별 기간동안 학습한 퀴즈 수 조회
+    @Query("SELECT qa.user.userId, COUNT(qa) FROM QuizAttemptEntity qa " +
+            "WHERE qa.createdAt BETWEEN :start AND :end " +
+            "GROUP BY qa.user.userId")
+    List<Object[]> countByUserGroupedBetween(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
 }

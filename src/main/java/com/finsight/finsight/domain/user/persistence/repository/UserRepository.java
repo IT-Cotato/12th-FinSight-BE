@@ -16,7 +16,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     UserEntity findUserEntityByUserId(Long userId);
 
     /**
-     * 알림 활성화된 EMAIL 유저 목록 조회
+     * 알림 활성화된 EMAIL 유저 목록 조회 (email 알림 전용)
      */
     @Query("""
         SELECT u FROM UserEntity u
@@ -25,4 +25,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
         AND ua.authType = :authType
     """)
     List<UserEntity> findByNotificationEnabledAndAuthType(@Param("authType") AuthType authType);
+
+    // 알림 활성화된 유저 조회 (fcm 전용)
+    List<UserEntity> findByNotificationEnabledTrue();
 }
