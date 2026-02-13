@@ -44,3 +44,6 @@ infra/observability/.env
 
 # QueryDSL 생성 파일 제외
 /src/main/generated/
+
+### log 관련
+logs/*.log
