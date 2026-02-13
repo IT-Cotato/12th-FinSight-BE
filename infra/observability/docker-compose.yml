@@ -27,43 +27,6 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
-  grafana:
-    image: grafana/grafana:latest
-    container_name: finsight-grafana
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-    depends_on:
-      - prometheus
-    restart: unless-stopped
-
-  loki:
-    image: grafana/loki:latest
-    container_name: finsight-loki
-    ports:
-      - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
-    restart: unless-stopped
-
-  # Promtail 설정 생성 (환경변수 치환)
-#  promtail-config:
-#    image: alpine:latest
-#    environment:
-#      - ENVIRONMENT=local
-#      - LOKI_URL=${LOKI_URL}
-#      - LOKI_USER=${LOKI_USER}
-#      - LOKI_API_KEY=${LOKI_API_KEY}
-#    volumes:
-#      - ./promtail:/config
-#      - promtail_config:/output
-#    command: >
-#      sh -c "apk add --no-cache gettext &&
-#             envsubst < /config/promtail.yml.template > /output/promtail.yml &&
-#             cat /output/promtail.yml &&
-#             echo 'Promtail config generated successfully'"
-#    restart: "no"
 
   promtail:
     image: grafana/promtail:latest
@@ -84,5 +47,3 @@ services:
 volumes:
   prometheus_config:
   prometheus_data:
-  promtail_config:
-  grafana_data:
