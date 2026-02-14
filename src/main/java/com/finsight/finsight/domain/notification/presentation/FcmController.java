@@ -31,11 +31,12 @@ public class FcmController {
     }
 
     @DeleteMapping("/token")
-    @Operation(summary = "FCM 토큰 삭제", description = "특정 FCM 토큰을 삭제합니다.")
+    @Operation(summary = "FCM 토큰 삭제", description = "본인의 FCM 토큰을 삭제합니다.")
     public ResponseEntity<DataResponse<Void>> deleteToken(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam String fcmToken
     ) {
-        fcmService.deleteToken(fcmToken);
+        fcmService.deleteToken(userDetails.getUserId(), fcmToken);
         return ResponseEntity.ok(DataResponse.ok());
     }
 }

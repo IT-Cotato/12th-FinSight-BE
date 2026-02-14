@@ -3,6 +3,8 @@ package com.finsight.finsight.domain.notification.domain.service;
 import com.finsight.finsight.domain.auth.exception.AuthException;
 import com.finsight.finsight.domain.auth.exception.code.AuthErrorCode;
 import com.finsight.finsight.domain.notification.domain.constant.DeviceType;
+import com.finsight.finsight.domain.notification.exception.NotificationException;
+import com.finsight.finsight.domain.notification.exception.code.NotificationErrorCode;
 import com.finsight.finsight.domain.notification.persistence.entity.FcmTokenEntity;
 import com.finsight.finsight.domain.notification.persistence.repository.FcmTokenRepository;
 import com.finsight.finsight.domain.user.persistence.entity.UserEntity;
@@ -57,11 +59,19 @@ public class FcmService {
     }
 
     /**
-     * 특정 토큰 삭제
+     * 본인 토큰만 삭제
      */
     @Transactional
-    public void deleteToken(String fcmToken) {
-        fcmTokenRepository.deleteByFcmToken(fcmToken);
+    public void deleteToken(Long userId, String fcmToken) {
+        FcmTokenEntity token = fcmTokenRepository.findByFcmToken(fcmToken)
+                .orElseThrow(() -> new NotificationException(NotificationErrorCode.FCM_TOKEN_NOT_FOUND));
+
+        // 본인 토큰인지 확인
+        if (!token.getUser().getUserId().equals(userId)) {
+            throw new NotificationException(NotificationErrorCode.FCM_TOKEN_NOT_OWNED);
+        }
+
+        fcmTokenRepository.delete(token);
     }
 
     /**
