@@ -95,7 +95,7 @@ ai:
 # 로그를 파일로 저장 설정
 logging:
   file:
-    name: logs/finsight.log  # 프로젝트 루트의 logs 폴더에 저장됨
+    name: /var/log/finsight/finsight.log
   logback:
     rollingpolicy:
       max-history: 7
