@@ -1,5 +1,6 @@
 package com.finsight.finsight.domain.notification.persistence.repository;
 
+import com.finsight.finsight.domain.notification.domain.constant.DeviceType;
 import com.finsight.finsight.domain.notification.persistence.entity.FcmTokenEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -28,4 +29,8 @@ public interface FcmTokenRepository extends JpaRepository<FcmTokenEntity, Long> 
     // 유저의 모든 토큰 삭제
     @Modifying
     void deleteByUserUserId(Long userId);
+
+    // 유저 + deviceType으로 삭제 (토큰 갱신 시 사용)
+    @Modifying
+    void deleteByUserUserIdAndDeviceType(Long userId, DeviceType deviceType);
 }

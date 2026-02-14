@@ -18,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -34,19 +36,25 @@ public class FcmService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
-        // 이미 존재하는 토큰인지 확인
-        fcmTokenRepository.findByFcmToken(fcmToken).ifPresentOrElse(
-                existingToken -> {
-                    // 다른 유저의 토큰이면 삭제 후 새로 저장
-                    if (!existingToken.getUser().getUserId().equals(userId)) {
-                        fcmTokenRepository.delete(existingToken);
-                        fcmTokenRepository.flush();
-                        saveNewToken(user, fcmToken, deviceType);
-                    }
-                    // 같은 유저면 아무것도 안 함 (이미 저장됨)
-                },
-                () -> saveNewToken(user, fcmToken, deviceType)
-        );
+        // 1. 이미 존재하는 토큰인지 확인
+        Optional<FcmTokenEntity> existing = fcmTokenRepository.findByFcmToken(fcmToken);
+        if (existing.isPresent()) {
+            // 같은 유저면 무시
+            if (existing.get().getUser().getUserId().equals(userId)) {
+                return;
+            }
+            // 다른 유저 토큰이면 삭제 (기기 이전)
+            fcmTokenRepository.delete(existing.get());
+            fcmTokenRepository.flush();
+        }
+
+        // 2. 같은 유저 + 같은 deviceType이면 기존 토큰 삭제 (토큰 갱신)
+        if (deviceType != null) {
+            fcmTokenRepository.deleteByUserUserIdAndDeviceType(userId, deviceType);
+        }
+
+        // 3. 새 토큰 저장
+        saveNewToken(user, fcmToken, deviceType);
     }
 
     private void saveNewToken(UserEntity user, String fcmToken, DeviceType deviceType) {
