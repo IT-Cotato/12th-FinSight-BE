@@ -1,13 +1,14 @@
 package com.finsight.finsight.global.exception;
 
+
+import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 @Getter
-@RequiredArgsConstructor
-public enum ErrorCode {
+@AllArgsConstructor
+public enum ErrorCode implements BaseErrorCode{
 
     //400
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 요청입니다.", "COMMON-001"),
@@ -16,6 +17,10 @@ public enum ErrorCode {
 
     //500
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부에서 에러가 발생하였습니다.", "COMMON-004"),
+
+
+
+
     ;
 
     private final HttpStatus httpStatus;

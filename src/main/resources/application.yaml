@@ -1,3 +1,13 @@
+server:
+  # Nginx(Proxy)가 넘겨주는 HTTPS 헤더 정보를 인식하게 함
+  forward-headers-strategy: native
+  servlet:
+    session:
+      cookie:
+        # HTTPS 환경에서만 쿠키가 전송되도록 보안 강화
+        secure: true
+        http-only: true
+
 spring:
   application:
     name: finsight
@@ -16,3 +26,70 @@ spring:
         format_sql: true
         show_sql: true
         dialect: org.hibernate.dialect.OracleDialect
+
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+jwt:
+  secret: ${JWT_SECRET}
+
+kakao:
+  client-id: ${KAKAO_CLIENT_ID}
+  client-secret: ${KAKAO_CLIENT_SECRET}
+  redirect-uri: ${KAKAO_REDIRECT_URI}
+
+naver:
+  crawler:
+    enabled: false              # 일단 크롤링 꺼놓기
+    cron: "0 */5 * * * *"       # 5분마다
+    max-pages: 1                # 각 탭 최신 1페이지까지만
+    stop-after-seen-streak: 8   # 이미 저장된 기사 연속 8개면 종료
+    timeout-ms: 8000
+    sleep-min-ms: 250
+    sleep-max-ms: 700
+    user-agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome Safari"
+    min-content-length-for-ai: 1000   # 1000자 미만이면 AI 건너뛰기
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+
+openai:
+  api-key: ${OPENAI_API_KEY}
+  base-url: https://api.openai.com/v1
+  model: gpt-4o-mini
+  timeout-ms: 20000
+  max-output-tokens: 900
+  temperature: 0.2
+
+ai:
+  admin-token: ${AI_ADMIN_TOKEN}
+  worker:
+    enabled: false             # 일단 AI 꺼놓기
+    cron: "*/30 * * * * *"     # 30초마다
+    batch-size: 5              # 한번에 5개 claim
+  retry:
+    max-attempts: 5
+    base-delay-seconds: 20
+    max-delay-seconds: 600
+  sweeper:
+    enabled: false
+    cron: "0 */1 * * * *"          # 1분 주기
+    stuck-threshold-minutes: 10    # RUNNING 10분 이상이면 stuck
+

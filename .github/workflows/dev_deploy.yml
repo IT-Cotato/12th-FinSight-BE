@@ -1,0 +1,122 @@
+name: FinSight Dev CI/CD
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch: # (2).수동 실행도 가능하도록
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # (3).OS환경
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'develop')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Create application.yml from Secret (safe)
+        run: |
+          mkdir -p src/main/resources
+          printf '%s' "${{ secrets.APPLICATION_YML }}" > src/main/resources/application.yml
+          # Windows CRLF 방지
+          sed -i 's/\r$//' src/main/resources/application.yml
+      
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build (bootJar) with debug log
+        run: ./gradlew clean bootJar -x test --stacktrace --info
+
+      - name: Pick jar and rename to finsight.jar
+        run: |
+          ls -al build/libs
+          JAR_PATH=$(ls build/libs/*.jar | head -n 1)
+          echo "Picked jar: $JAR_PATH"
+          cp "$JAR_PATH" finsight.jar
+
+      - name: Setup SSH key (debug)
+        run: |
+          echo "HOME is: $HOME"
+          echo "Setting up SSH key..."
+          mkdir -p ~/.ssh
+          ls -ld ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "SSH key written successfully"
+          ls -l ~/.ssh
+          echo "SSH key file size: $(wc -c < ~/.ssh/id_rsa) bytes"
+          echo "SSH key permissions: $(ls -l ~/.ssh/id_rsa | awk '{print $1}')"
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          echo "SSH setup completed"
+
+      - name: Upload jar to EC2
+        run: |
+          scp -i ~/.ssh/id_rsa finsight.jar ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USERNAME }}/finsight.jar
+
+      - name: Upload application.yml to EC2 (/etc/finsight)
+        run: |
+          # 1) Runner에서 생성된 파일을 EC2 홈으로 먼저 업로드
+          scp -i ~/.ssh/id_rsa src/main/resources/application.yml \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USERNAME }}/application.yml
+
+          # 2) sudo로 /etc로 이동
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            sudo mkdir -p /etc/finsight
+            sudo mv /home/${{ secrets.EC2_USERNAME }}/application.yml /etc/finsight/application.yml
+            sudo chmod 600 /etc/finsight/application.yml
+            sudo chown ${{ secrets.EC2_USERNAME }}:${{ secrets.EC2_USERNAME }} /etc/finsight/application.yml
+            echo "[OK] deployed /etc/finsight/application.yml"
+          EOF
+
+      # 모니터링
+      - name: Upload observability configs to EC2
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "mkdir -p /home/${{ secrets.EC2_USERNAME }}/infra"
+          scp -i ~/.ssh/id_rsa -r infra/observability \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USERNAME }}/infra/observability
+
+      - name: Restart app on EC2 (with OCI Oracle env)
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            
+            # ---------- Run/Keep Prometheus+Grafana up ----------
+            cd /home/${{ secrets.EC2_USERNAME }}/infra/observability
+
+            # docker compose 명령 호환 처리
+            if docker compose version >/dev/null 2>&1; then
+              DC="docker compose"
+            elif docker-compose version >/dev/null 2>&1; then
+              DC="docker-compose"
+            else
+              echo "[ERROR] docker compose not found. Install docker + docker compose plugin on EC2 first."
+              exit 1
+            fi
+
+            $DC up -d --remove-orphans
+          
+            # 1) Stop previous app (if running)
+            pgrep -f 'finsight.jar' && pkill -f 'finsight.jar' || true
+
+            # 2) Export DB env (OCI Oracle TLS)
+            export DB_URL='${{ secrets.DB_URL }}'
+            export DB_USERNAME='${{ secrets.DB_USERNAME }}'
+            export DB_PASSWORD='${{ secrets.DB_PASSWORD }}'
+
+            # 3) Run new app (use external YAML)
+            nohup java -jar /home/${{ secrets.EC2_USERNAME }}/finsight.jar \
+              --spring.config.location=file:/etc/finsight/application.yml \
+              > /home/${{ secrets.EC2_USERNAME }}/app.log 2>&1 &
+
+            # 4) Show last logs
+            sleep 2
+            tail -n 50 /home/${{ secrets.EC2_USERNAME }}/app.log || true
+          EOF

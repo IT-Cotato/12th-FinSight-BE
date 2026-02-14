@@ -1,0 +1,57 @@
+# 한국어 설정
+language: "ko-KR"
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true # PR 요약 제공
+  poem: false # 시 작성 끄기 (불필요한 내용 제거)
+  review_status: true # 리뷰 상태 표시
+  collapse_walkthrough: false
+
+  auto_review:
+    enabled: true
+    drafts: false # Draft PR은 리뷰하지 않음 (완성되면 리뷰)
+    base_branches:
+      - "main"
+      - "develop"
+
+  path_instructions:
+    - path: "src/main/java/**/*.java"
+      instructions: |
+        - Java 17의 새로운 문법(Record, Switch Expression 등)을 적절히 사용하는지 확인한다.
+        - Spring Boot 3.x 버전에 맞는 코드 스타일인지 점검한다.
+        - SOLID 원칙, 의존성 주입(DI), 예외 처리(GlobalExceptionHandler)가 적절한지 본다.
+        - JPA 사용 시 N+1 문제나 불필요한 쿼리가 발생하지 않는지 체크한다.
+
+    - path: "src/test/**/*.java"
+      instructions: |
+        - JUnit5와 AssertJ를 활용한 가독성 좋은 테스트 코드인지 확인한다.
+        - Mockito 사용 시 불필요한 Stubbing이 없는지 체크한다.
+
+    - path: "**/*.{yml,yaml,properties}"
+      instructions: |
+        - DB 접속 정보(Oracle)나 비밀번호 같은 민감 정보가 하드코딩 되어 있는지 철저히 확인한다.
+        - application.yml의 들여쓰기나 설정 오타를 점검한다.
+
+    - path: ".github/workflows/**/*.yml"
+      instructions: |
+        - GitHub Actions 문법 오류와 들여쓰기를 확인한다.
+        - 불필요한 단계(Step)가 있거나 보안상 위험한 권한 설정이 없는지 본다.
+
+  # 리뷰 제외 파일 (빌드 파일 등)
+  path_filters:
+    - "!**/build/**"
+    - "!**/.gradle/**"
+    - "!**/gradle/wrapper/**"
+    - "!**/gradlew*"
+    - "!**/out/**"
+    - "!**/*.class"
+    - "!**/*.jar"
+    - "!**/*.war"
+
+chat:
+  auto_reply: true # 대댓글 달면 AI가 답변
+
+# AI 페르소나 설정 (원하는 톤앤매너)
+tone_instructions: "너는 친절하고 꼼꼼한 '시니어 백엔드 개발자'야. 버그 가능성이나 성능 이슈는 명확하게 지적하되, 칭찬할 부분은 칭찬해줘. 설명은 초보자도 이해하기 쉽게 구체적으로 해줘."
