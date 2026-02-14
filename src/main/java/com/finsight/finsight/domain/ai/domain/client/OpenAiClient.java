@@ -65,8 +65,13 @@ public class OpenAiClient {
                     .block(Duration.ofMillis(props.getTimeoutMs()));
 
             // 성공 메트릭
-            recordLatency(sample, schemaName, "success");
+            long latencyMs = recordLatency(sample, schemaName, "success");
             incApiCounter(schemaName, "success", null);
+
+            // 성공 로그 (토큰 정보 포함)
+            int totalTokens = extractTotalTokens(result);
+            log.info("[OPENAI] event_type=api_success schema={} latency_ms={} total_tokens={}",
+                    schemaName, latencyMs, totalTokens);
 
             return result;
 
@@ -176,13 +181,20 @@ public class OpenAiClient {
         builder.register(meterRegistry).increment();
     }
 
-    private void recordLatency(Timer.Sample sample, String schema, String status) {
-        sample.stop(Timer.builder("openai_api_latency_seconds")
+    private long recordLatency(Timer.Sample sample, String schema, String status) {
+        long nanos = sample.stop(Timer.builder("openai_api_latency_seconds")
                 .tag("model", props.getModel())
                 .tag("schema", schema)
                 .tag("status", status)
                 .publishPercentiles(0.5, 0.9, 0.99)
                 .register(meterRegistry));
+        return nanos / 1_000_000; // nanoseconds to milliseconds
+    }
+
+    private int extractTotalTokens(JsonNode result) {
+        if (result == null) return 0;
+        JsonNode usage = result.path("usage");
+        return usage.path("total_tokens").asInt(0);
     }
 
     public static String extractOutputText(JsonNode root) {

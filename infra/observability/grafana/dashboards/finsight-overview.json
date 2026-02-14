@@ -1,0 +1,420 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "System Overview",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "color": "red", "text": "DOWN" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "up{service=\"finsight\", environment=\"$environment\"}", "refId": "A" }],
+      "title": "App Status",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "decmbytes",
+          "thresholds": { "mode": "percentage", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 85 }] },
+          "max": 512
+        }
+      },
+      "gridPos": { "h": 4, "w": 5, "x": 4, "y": 1 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "jvm_memory_used_bytes{area=\"heap\", service=\"finsight\", environment=\"$environment\"} / 1024 / 1024", "refId": "A" }],
+      "title": "Heap Memory Used",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 4, "w": 5, "x": 9, "y": 1 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "jvm_threads_live_threads{service=\"finsight\", environment=\"$environment\"}", "refId": "A" }],
+      "title": "Live Threads",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "reqps", "decimals": 2 } },
+      "gridPos": { "h": 4, "w": 5, "x": 14, "y": 1 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "sum(rate(http_server_requests_seconds_count{service=\"finsight\", environment=\"$environment\"}[5m]))", "refId": "A" }],
+      "title": "HTTP Requests/sec",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "percent" } },
+      "gridPos": { "h": 4, "w": 5, "x": 19, "y": 1 },
+      "id": 5,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "system_cpu_usage{service=\"finsight\", environment=\"$environment\"} * 100", "refId": "A" }],
+      "title": "CPU Usage",
+      "type": "stat"
+    },
+    {
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "AI Jobs",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 30 }, { "color": "red", "value": 50 }] }
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 6 },
+      "id": 10,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        { "expr": "sum(ai_jobs_queue_size{status=\"PENDING\", service=\"finsight\", environment=\"$environment\"}) or vector(0)", "legendFormat": "PENDING", "refId": "A" }
+      ],
+      "title": "Pending Jobs",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 6 },
+      "id": 14,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        { "expr": "increase(ai_articles_completed_total{service=\"finsight\", environment=\"$environment\"}[1h]) or vector(0)", "refId": "A" }
+      ],
+      "title": "AI Completed (1h)",
+      "description": "AI 작업이 모두 완료된 article 수 (최근 1시간)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 }, "unit": "short" } },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 6 },
+      "id": 11,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "increase(ai_jobs_processed_total{result=\"success\", service=\"finsight\", environment=\"$environment\"}[5m])", "legendFormat": "{{type}} - success", "refId": "A" },
+        { "expr": "increase(ai_jobs_processed_total{result=\"failed\", service=\"finsight\", environment=\"$environment\"}[5m])", "legendFormat": "{{type}} - failed", "refId": "B" }
+      ],
+      "title": "AI Jobs Processed (5m)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 }, "unit": "s" } },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 6 },
+      "id": 12,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "rate(ai_job_duration_seconds_sum{service=\"finsight\", environment=\"$environment\"}[5m]) / rate(ai_job_duration_seconds_count{service=\"finsight\", environment=\"$environment\"}[5m])", "legendFormat": "{{type}}", "refId": "A" }
+      ],
+      "title": "AI Job Duration (avg)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 10 },
+      "id": 13,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        { "expr": "increase(ai_sweeper_recovered_total{type=\"stuck_to_retry\", service=\"finsight\", environment=\"$environment\"}[1h]) or vector(0)", "legendFormat": "Stuck→Retry", "refId": "A" },
+        { "expr": "increase(ai_sweeper_recovered_total{type=\"retry_wait_to_pending\", service=\"finsight\", environment=\"$environment\"}[1h]) or vector(0)", "legendFormat": "Retry→Pending", "refId": "B" }
+      ],
+      "title": "Sweeper Recovered (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 10 },
+      "id": 15,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        { "expr": "sum(ai_jobs_queue_size{status=\"RUNNING\", service=\"finsight\", environment=\"$environment\"}) or vector(0)", "legendFormat": "RUNNING", "refId": "A" },
+        { "expr": "sum(ai_jobs_queue_size{status=\"RETRY_WAIT\", service=\"finsight\", environment=\"$environment\"}) or vector(0)", "legendFormat": "RETRY_WAIT", "refId": "B" }
+      ],
+      "title": "Running / Retry",
+      "type": "stat"
+    },
+    {
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 102,
+      "title": "OpenAI API",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0.95 }, { "color": "green", "value": 0.99 }] } } },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 15 },
+      "id": 20,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "sum(rate(openai_api_requests_total{status=\"success\", service=\"finsight\", environment=\"$environment\"}[1h])) / sum(rate(openai_api_requests_total{service=\"finsight\", environment=\"$environment\"}[1h]))", "refId": "A" }],
+      "title": "API Success Rate (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 }, "unit": "short" } },
+      "gridPos": { "h": 8, "w": 9, "x": 6, "y": 15 },
+      "id": 21,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "increase(openai_api_requests_total{status=\"success\", service=\"finsight\", environment=\"$environment\"}[5m])", "legendFormat": "{{schema}} - success", "refId": "A" },
+        { "expr": "increase(openai_api_requests_total{status=\"error\", service=\"finsight\", environment=\"$environment\"}[5m])", "legendFormat": "{{schema}} - error", "refId": "B" }
+      ],
+      "title": "OpenAI API Requests (5m)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 19 },
+      "id": 23,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        { "expr": "increase(openai_api_requests_total{status=\"error\", service=\"finsight\", environment=\"$environment\"}[1h])", "legendFormat": "{{error_code}}", "refId": "A" }
+      ],
+      "title": "API Errors by Code (1h)",
+      "type": "stat"
+    },
+    {
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "id": 103,
+      "title": "Crawler",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 50, "lineWidth": 1 }, "unit": "short" } },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 24 },
+      "id": 30,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "increase(crawler_articles_total{status=\"saved\", service=\"finsight\", environment=\"$environment\"}[1h])", "legendFormat": "{{section}}", "refId": "A" }
+      ],
+      "title": "Articles Saved (1h)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] }
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 8, "y": 24 },
+      "id": 32,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        { "expr": "sum(increase(crawler_articles_total{status=\"ai_skipped_short_content\", service=\"finsight\", environment=\"$environment\"}[1h])) or vector(0)", "refId": "A" }
+      ],
+      "title": "AI Skipped (Short) 1h",
+      "description": "본문 1000자 미만으로 AI 작업을 건너뛴 기사 수",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 }, "unit": "s" } },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 24 },
+      "id": 31,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "rate(crawler_run_seconds_sum{service=\"finsight\", environment=\"$environment\"}[5m]) / rate(crawler_run_seconds_count{service=\"finsight\", environment=\"$environment\"}[5m])", "legendFormat": "{{section}}", "refId": "A" }
+      ],
+      "title": "Crawler Duration (avg)",
+      "type": "timeseries"
+    },
+    {
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 },
+      "id": 104,
+      "title": "Logs (Loki)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 31 },
+      "id": 40,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }, { "color": "red", "value": 50 }] }
+        }
+      },
+      "targets": [{ "expr": "sum(count_over_time({job=\"finsight\", environment=\"$environment\"} |= \"[ERROR]\" [1h]))", "refId": "A" }],
+      "title": "Error Logs (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 31 },
+      "id": 41,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 5 }, { "color": "red", "value": 20 }] }
+        }
+      },
+      "targets": [{ "expr": "sum(count_over_time({job=\"finsight\", environment=\"$environment\"} |= \"event_type=login_failed\" [1h]))", "refId": "A" }],
+      "title": "Login Failed (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 31 },
+      "id": 42,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [{ "expr": "sum(count_over_time({job=\"finsight\", environment=\"$environment\"} |= \"event_type=login_success\" [1h]))", "refId": "A" }],
+      "title": "Login Success (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 31 },
+      "id": 43,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [{ "expr": "sum(count_over_time({job=\"finsight\", environment=\"$environment\"} |= \"signup_success\" [1h]))", "refId": "A" }],
+      "title": "Signups (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 35 },
+      "id": 44,
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      },
+      "targets": [{ "expr": "{job=\"finsight\", environment=\"$environment\"} |~ \"(?i)ERROR|WARN\"", "refId": "A" }],
+      "title": "Recent Error & Warning Logs",
+      "type": "logs"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 43 },
+      "id": 45,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 50, "lineWidth": 1 }, "unit": "short" } },
+      "targets": [
+        { "expr": "sum by (level) (count_over_time({job=\"finsight\", environment=\"$environment\"} | pattern `<_> <level> <_>` [5m]))", "legendFormat": "{{level}}", "refId": "A" }
+      ],
+      "title": "Log Levels Over Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 43 },
+      "id": 46,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 }, "unit": "short" } },
+      "targets": [
+        { "expr": "sum(count_over_time({job=\"finsight\", environment=\"$environment\"} |= \"[AUTH]\" [5m]))", "legendFormat": "Auth Events", "refId": "A" },
+        { "expr": "sum(count_over_time({job=\"finsight\", environment=\"$environment\"} |= \"[OPENAI]\" [5m]))", "legendFormat": "OpenAI Events", "refId": "B" },
+        { "expr": "sum(count_over_time({job=\"finsight\", environment=\"$environment\"} |= \"[ERROR]\" [5m]))", "legendFormat": "Errors", "refId": "C" }
+      ],
+      "title": "Event Types Over Time",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["finsight", "spring-boot", "ai"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "grafanacloud-kkshyun56-prom", "value": "grafanacloud-kkshyun56-prom" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Prometheus",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": { "selected": false, "text": "grafanacloud-kkshyun56-logs", "value": "grafanacloud-kkshyun56-logs" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Loki",
+        "multi": false,
+        "name": "loki_datasource",
+        "options": [],
+        "query": "loki",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": { "selected": true, "text": "local", "value": "local" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Environment",
+        "multi": false,
+        "name": "environment",
+        "options": [
+          { "selected": true, "text": "local", "value": "local" },
+          { "selected": false, "text": "production", "value": "production" }
+        ],
+        "query": "local,production",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "Asia/Seoul",
+  "title": "FinSight Overview",
+  "uid": "finsight-overview",
+  "version": 2,
+  "weekStart": ""
+}

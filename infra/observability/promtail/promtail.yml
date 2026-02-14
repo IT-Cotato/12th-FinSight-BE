@@ -1,0 +1,32 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: https://logs-prod-030.grafana.net/loki/api/v1/push
+    basic_auth:
+      # Grafana Cloud Loki 페이지에서 확인할 수 있는 User ID (숫자)
+      username: "${LOKI_USER}"
+      # 이전에 생성하신 Grafana Cloud API Key (또는 Token)
+      password: "${LOKI_API_KEY}"
+
+scrape_configs:
+  - job_name: finsight-local
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: finsight
+          environment: local
+          __path__: /logs/*.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<time>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}).*?(?P<level>[A-Z]{4,5})\s+.*'
+      - labels:
+          level:
+      - timestamp:
+          source: time
+          format: RFC3339

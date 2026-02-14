@@ -1,13 +1,27 @@
 services:
+  # 1. Prometheus: 배포 환경 변수 설정 & 포트 보안 강화
   prometheus:
-    # 운영에서 Prometheus UI 외부 공개 방지
+    environment:
+      - ENVIRONMENT=production
     ports:
-      - "127.0.0.1:9090:9090"
-    # EC2(Linux)에서 host.docker.internal 사용 위해
+      - "127.0.0.1:9090:9090" # 외부 노출 차단 (localhost만 허용)
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # 2. Grafana: 클라우드 사용하므로 로컬 컨테이너 비활성화
   grafana:
-    # Grafana는 외부에서 봐야 하니 그대로
-    ports:
-      - "3000:3000"
+    profiles:
+      - disabled
+
+  # 3. Promtail: 시스템 로그 수집 추가
+  promtail:
+    environment:
+      - ENVIRONMENT=production
+      # EC2 배포 시 필요한 환경변수 주입
+      - LOKI_URL=${LOKI_URL}
+      - LOKI_USER=${LOKI_USER}
+      - LOKI_API_KEY=${LOKI_API_KEY}
+    volumes:
+      # [핵심] 호스트(EC2)의 시스템 로그 폴더를 컨테이너로 연결 (읽기 전용)
+      - /var/log:/var/log:ro
+      # (참고) Base 파일의 ./promtail/promtail.yml과 ../../logs 마운트는 그대로 유지됨

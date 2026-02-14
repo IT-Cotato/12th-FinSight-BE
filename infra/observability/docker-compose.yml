@@ -1,26 +1,49 @@
 services:
+  # 환경변수를 적용해서 prometheus.yml 생성
+  prometheus-config:
+    image: alpine:latest
+    environment:
+      - ENVIRONMENT=local
+      - GRAFANA_REMOTE_WRITE_URL=${GRAFANA_REMOTE_WRITE_URL}
+      - GRAFANA_CLOUD_USER=${GRAFANA_CLOUD_USER}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY}
+    volumes:
+      - ./prometheus:/config
+      - prometheus_config:/output
+    command: >
+      sh -c "apk add --no-cache gettext &&
+             envsubst < /config/prometheus.yml.template > /output/prometheus.yml &&
+             echo 'Config generated successfully'"
+    restart: "no"
+
   prometheus:
     image: prom/prometheus:latest
     container_name: finsight-prometheus
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_config:/etc/prometheus:ro
       - prometheus_data:/prometheus
-    #ports:
-    #  - "9090:9090"
+    depends_on:
+      prometheus-config:
+        condition: service_completed_successfully
     restart: unless-stopped
 
-  grafana:
-    image: grafana/grafana:latest
-    container_name: finsight-grafana
-    ports:
-      - "3000:3000"
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: finsight-promtail
+    environment:
+      - LOKI_URL=${LOKI_URL}
+      - LOKI_USER=${LOKI_USER}
+      - LOKI_API_KEY=${LOKI_API_KEY}
     volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-    depends_on:
-      - prometheus
+      # [핵심 1] 방금 만든 파일을 컨테이너의 config.yml로 연결
+      - ./promtail/promtail.yml:/etc/promtail/config.yml
+      # [핵심 2] 로그 파일 경로 (상대 경로 확인 필수)
+      - ../../logs:/logs
+    # [핵심 3] 컨테이너 내부의 config.yml을 읽도록 명령어 수정
+    command: -config.file=/etc/promtail/config.yml -config.expand-env=true
     restart: unless-stopped
 
 volumes:
+  prometheus_config:
   prometheus_data:
-  grafana_data:
