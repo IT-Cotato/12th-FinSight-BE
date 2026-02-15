@@ -14,6 +14,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface FolderItemRepository extends JpaRepository<FolderItemEntity, Long> {
 
@@ -151,12 +152,14 @@ public interface FolderItemRepository extends JpaRepository<FolderItemEntity, Lo
     @Query("SELECT COUNT(fi) > 0 FROM FolderItemEntity fi WHERE fi.folder.user.userId = :userId AND fi.itemType = :itemType AND fi.savedAt >= :since")
     boolean existsByUserIdAndItemTypeAndSavedAtAfter(@Param("userId") Long userId, @Param("itemType") FolderType itemType, @Param("since") LocalDateTime since);
 
-    /**
-     * 날짜 범위 내 뉴스 저장 여부 확인
-     */
-    @Query("SELECT COUNT(fi) > 0 FROM FolderItemEntity fi WHERE fi.folder.user.userId = :userId AND fi.itemType = :itemType AND fi.savedAt BETWEEN :start AND :end")
-    boolean existsByUserIdAndItemTypeAndSavedAtBetween(
-            @Param("userId") Long userId,
+
+    // ========== fcm 알림 ===========
+
+    // FolderItemRepository
+    @Query("SELECT DISTINCT fi.folder.user.userId FROM FolderItemEntity fi " +
+            "WHERE fi.itemType = :itemType " +
+            "AND fi.savedAt BETWEEN :start AND :end")
+    Set<Long> findUserIdsByItemTypeAndSavedAtBetween(
             @Param("itemType") FolderType itemType,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
