@@ -47,3 +47,4 @@ infra/observability/.env
 
 ### log 관련
 logs/*.log
+/src/main/resources/firebaseFinsight.json
