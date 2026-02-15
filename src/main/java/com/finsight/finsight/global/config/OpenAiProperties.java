@@ -11,6 +11,6 @@ public class OpenAiProperties {
     private String baseUrl = "https://api.openai.com/v1";
     private String model = "gpt-4o-mini";
     private int timeoutMs = 20000;
-    private int maxOutputTokens = 900;
+    private int maxOutputTokens = 3000;
     private double temperature = 0.2;
 }
