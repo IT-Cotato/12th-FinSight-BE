@@ -258,8 +258,8 @@ public class AuthService {
         UserAuthEntity userAuth = existingUser.get();
         Long userId = userAuth.getUser().getUserId();
 
-        String accessToken = jwtUtil.createAccessToken(String.valueOf(userId));
-        String refreshToken = jwtUtil.createRefreshToken(String.valueOf(userId));
+        String accessToken = jwtUtil.createAccessToken(kakaoId);
+        String refreshToken = jwtUtil.createRefreshToken(kakaoId);
 
         userAuth.updateRefreshToken(refreshToken, LocalDateTime.now().plusDays(30));
 
@@ -304,8 +304,8 @@ public class AuthService {
 
         userAuthRepository.save(userAuth);
 
-        String accessToken = jwtUtil.createAccessToken(String.valueOf(user.getUserId()));
-        String refreshToken = jwtUtil.createRefreshToken(String.valueOf(user.getUserId()));
+        String accessToken = jwtUtil.createAccessToken(kakaoId);
+        String refreshToken = jwtUtil.createRefreshToken(kakaoId);
 
         userAuth.updateRefreshToken(refreshToken, LocalDateTime.now().plusDays(30));
 
