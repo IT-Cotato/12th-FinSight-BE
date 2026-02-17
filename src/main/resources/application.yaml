@@ -93,10 +93,17 @@ ai:
     cron: "0 */1 * * * *"          # 1분 주기
     stuck-threshold-minutes: 10    # RUNNING 10분 이상이면 stuck
 
-firebase:
-  adminsdk:
-    account:
-      path: ${FIREBASE_KEY_PATH}
+  firebase:
+    adminsdk:
+      account:
+        path: ${FIREBASE_KEY_PATH}
+
+notification:
+  scheduler:
+    daily-cron: ${DAILY_NOTIFICATION_CRON:0 0 9 * * *}
+    weekly-cron: ${WEEKLY_NOTIFICATION_CRON:0 0 9 * * MON}
+    enabled: ${NOTIFICATION_SCHEDULER_ENABLED:true}
+  site-url: ${SITE_URL:https://develop-12th-fin-sight-fe.vercel.app}
 
 # 로그를 파일로 저장 설정
 logging:
