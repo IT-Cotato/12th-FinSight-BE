@@ -93,10 +93,10 @@ ai:
     cron: "0 */1 * * * *"          # 1분 주기
     stuck-threshold-minutes: 10    # RUNNING 10분 이상이면 stuck
 
-  firebase:
-    adminsdk:
-      account:
-        path: ${FIREBASE_KEY_PATH}
+firebase:
+  adminsdk:
+    account:
+      path: ${FIREBASE_KEY_PATH}
 
 notification:
   scheduler:
