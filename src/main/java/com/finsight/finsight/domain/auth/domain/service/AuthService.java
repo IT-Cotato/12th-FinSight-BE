@@ -195,29 +195,30 @@ public class AuthService {
             throw new AuthException(AuthErrorCode.EXPIRED_TOKEN);
         }
 
-        String email = jwtUtil.getEmail(refreshToken);
+        String identifier = jwtUtil.getEmail(refreshToken);
 
         UserAuthEntity userAuth = userAuthRepository
-                .findByIdentifierAndAuthType(email, AuthType.EMAIL)
+                .findByIdentifierAndAuthType(identifier, AuthType.EMAIL)
+                .or(() -> userAuthRepository.findByIdentifierAndAuthType(identifier, AuthType.KAKAO))
                 .orElseThrow(() -> {
-                    log.warn("[AUTH] event_type=token_refresh_failed email={} reason=user_not_found", email);
+                    log.warn("[AUTH] event_type=token_refresh_failed identifier={} reason=user_not_found", identifier);
                     return new AuthException(AuthErrorCode.USER_NOT_FOUND);
                 });
 
         if (!refreshToken.equals(userAuth.getRefreshToken())) {
-            log.warn("[AUTH] event_type=token_refresh_failed email={} reason=token_mismatch", email);
+            log.warn("[AUTH] event_type=token_refresh_failed identifier={} reason=token_mismatch", identifier);
             throw new AuthException(AuthErrorCode.INVALID_TOKEN);
         }
 
-        String newAccessToken = jwtUtil.createAccessToken(email);
-        String newRefreshToken = jwtUtil.createRefreshToken(email);
+        String newAccessToken = jwtUtil.createAccessToken(identifier);
+        String newRefreshToken = jwtUtil.createRefreshToken(identifier);
 
         userAuth.updateRefreshToken(newRefreshToken, LocalDateTime.now().plusDays(30));
 
         // 출석 체크
         recordAttendance(userAuth.getUser());
 
-        log.debug("[AUTH] event_type=token_refresh_success email={}", email);
+        log.debug("[AUTH] event_type=token_refresh_success identifier={}", identifier);
         return new TokenResponse(newAccessToken, newRefreshToken);
     }
 
@@ -225,13 +226,14 @@ public class AuthService {
     로그아웃 처리
     - DB 내 Refresh Token 제거
      */
-    public void logout(String email) {
+    public void logout(String identifier) {
         UserAuthEntity userAuth = userAuthRepository
-                .findByIdentifierAndAuthType(email, AuthType.EMAIL)
+                .findByIdentifierAndAuthType(identifier, AuthType.EMAIL)
+                .or(() -> userAuthRepository.findByIdentifierAndAuthType(identifier, AuthType.KAKAO))
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
         userAuth.clearRefreshToken();
-        log.info("[AUTH] event_type=logout user_id={} email={}", userAuth.getUser().getUserId(), email);
+        log.info("[AUTH] event_type=logout user_id={} identifier={}", userAuth.getUser().getUserId(), identifier);
     }
 
     /*
@@ -256,8 +258,8 @@ public class AuthService {
         UserAuthEntity userAuth = existingUser.get();
         Long userId = userAuth.getUser().getUserId();
 
-        String accessToken = jwtUtil.createAccessToken(String.valueOf(userId));
-        String refreshToken = jwtUtil.createRefreshToken(String.valueOf(userId));
+        String accessToken = jwtUtil.createAccessToken(kakaoId);
+        String refreshToken = jwtUtil.createRefreshToken(kakaoId);
 
         userAuth.updateRefreshToken(refreshToken, LocalDateTime.now().plusDays(30));
 
@@ -302,8 +304,8 @@ public class AuthService {
 
         userAuthRepository.save(userAuth);
 
-        String accessToken = jwtUtil.createAccessToken(String.valueOf(user.getUserId()));
-        String refreshToken = jwtUtil.createRefreshToken(String.valueOf(user.getUserId()));
+        String accessToken = jwtUtil.createAccessToken(kakaoId);
+        String refreshToken = jwtUtil.createRefreshToken(kakaoId);
 
         userAuth.updateRefreshToken(refreshToken, LocalDateTime.now().plusDays(30));
 
