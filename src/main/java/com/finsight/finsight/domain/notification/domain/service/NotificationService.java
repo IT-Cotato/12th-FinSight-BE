@@ -35,11 +35,9 @@ public class NotificationService {
     private final FcmTokenRepository fcmTokenRepository;
     private final FcmService fcmService;
 
-    /*
-    이메일 알림 기능 보류 - 추후 활성화 시 주석 해제
+
     private final EmailService emailService;
     private final NotificationTemplateBuilder templateBuilder;
-    */
 
     /**
      * 일일 알림 발송 (매일 오전 8시)
@@ -69,14 +67,12 @@ public class NotificationService {
                 boolean isQuizSolved = quizUserIds.contains(user.getUserId());
                 boolean isQuizReviewed = reviewUserIds.contains(user.getUserId());
 
-                /*
-                이메일 알림 기능 보류 - 추후 활성화 시 주석 해제
+
                 String email = getEmailFromUser(user);
                 if (email != null) {
                     String htmlContent = templateBuilder.buildDailyEmail(isNewsSaved, isQuizSolved, isQuizReviewed);
                     emailService.sendHtmlEmail(email, "[FinSight] 오늘의 학습 알림", htmlContent);
                 }
-                */
 
                 // 유저의 모든 기기에 FCM 발송
                 List<FcmTokenEntity> tokens = tokenMap.getOrDefault(user.getUserId(), List.of());
@@ -124,13 +120,11 @@ public class NotificationService {
                 long quizCount = quizCountMap.getOrDefault(user.getUserId(), 0L);
                 long newsCount = newsCountMap.getOrDefault(user.getUserId(), 0L);
 
-                /*
-                이메일 알림 기능 보류 - 추후 활성화 시 주석 해제
                 String email = getEmailFromUser(user);
                 if (email != null) {
-                    String htmlContent = templateBuilder.buildWeeklyEmail(quiz, news);
+                    String htmlContent = templateBuilder.buildWeeklyEmail(quizCount, newsCount);
                     emailService.sendHtmlEmail(email, "[FinSight] 주간 학습 리포트", htmlContent);
-                 */
+                }
 
                 // 유저의 모든 기기에 FCM 발송
                 List<FcmTokenEntity> tokens = tokenMap.getOrDefault(user.getUserId(), List.of());
@@ -154,8 +148,8 @@ public class NotificationService {
                 .collect(Collectors.groupingBy(token -> token.getUser().getUserId()));
     }
 
-    /*
-    이메일 알림 기능 보류 - 추후 활성화 시 주석 해제
+
+
     private String getEmailFromUser(UserEntity user) {
         return user.getUserAuths().stream()
                 .filter(auth -> auth.getAuthType() == AuthType.EMAIL)
@@ -163,5 +157,5 @@ public class NotificationService {
                 .findFirst()
                 .orElse(null);
     }
-     */
+
 }
