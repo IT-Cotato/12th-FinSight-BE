@@ -80,15 +80,12 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl {
                                                                                                         .containsIgnoreCase(keyword)))
                                                         .exists())
                                         .or(JPAExpressions.selectOne()
-                                                        .from(qSummary)
-                                                        .where(qSummary.article.eq(naverArticleEntity)
-                                                                        .and(Expressions.booleanTemplate(
-                                                                                        "UPPER(DBMS_LOB.SUBSTR({0}, 4000, 1)) LIKE UPPER({1})",
-                                                                                        qSummary.summaryFull,
-                                                                                        "%" + keyword + "%")
-                                                                                        .or(qSummary.summary3Lines
-                                                                                                        .containsIgnoreCase(keyword))))
-                                                        .exists()));
+                                                .from(qSummary)
+                                                .where(qSummary.article.eq(naverArticleEntity)
+                                                        .and(qSummary.summaryFull.contains(keyword)
+                                                                .or(qSummary.summary3Lines
+                                                                        .containsIgnoreCase(keyword))))
+                                                .exists()));
                 }
 
                 // 용어 카드 3개 이상 조건
