@@ -82,12 +82,9 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl {
                                         .or(JPAExpressions.selectOne()
                                                         .from(qSummary)
                                                         .where(qSummary.article.eq(naverArticleEntity)
-                                                                        .and(Expressions.booleanTemplate(
-                                                                                        "UPPER(DBMS_LOB.SUBSTR({0}, 4000, 1)) LIKE UPPER({1})",
-                                                                                        qSummary.summaryFull,
-                                                                                        "%" + keyword + "%")
-                                                                                        .or(qSummary.summary3Lines
-                                                                                                        .containsIgnoreCase(keyword))))
+                                                                .and(qSummary.summaryFull.contains(keyword)
+                                                                        .or(qSummary.summary3Lines
+                                                                                .containsIgnoreCase(keyword))))
                                                         .exists()));
                 }
 
