@@ -475,6 +475,8 @@ public class AiJobService {
             completeQuizSuccess(job, article, AiJobType.QUIZ_TERM, jsonText);
 
             metrics.incProcessed(AiJobType.QUIZ_TERM, "success");
+            // QUIZ_TERM은 AI 파이프라인의 마지막 단계 → article AI 작업 완료
+            metrics.incArticleCompleted();
         } catch (AppException e) {
             markJobFailed(jobId, e.getErrorCode());
             metrics.incProcessed(AiJobType.QUIZ_TERM, "failed");

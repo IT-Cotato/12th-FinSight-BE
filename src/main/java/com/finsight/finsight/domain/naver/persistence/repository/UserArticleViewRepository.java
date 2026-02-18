@@ -49,12 +49,11 @@ public interface UserArticleViewRepository extends JpaRepository<UserArticleView
 
     boolean existsByUserUserIdAndArticleId(Long userId, Long articleId);
 
-    /**
-     * 날짜 범위 내 조회한 뉴스 수
-     */
-    @Query("SELECT COUNT(uav) FROM UserArticleViewEntity uav WHERE uav.user.userId = :userId AND uav.viewedAt BETWEEN :start AND :end")
-    Long countByUserIdAndViewedAtBetween(
-            @Param("userId") Long userId,
+    // 유저별 기간동안 학습한 뉴스 수 조회
+    @Query("SELECT uav.user.userId, COUNT(uav) FROM UserArticleViewEntity uav " +
+            "WHERE uav.viewedAt BETWEEN :start AND :end " +
+            "GROUP BY uav.user.userId")
+    List<Object[]> countByUserGroupedBetween(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
 }

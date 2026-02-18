@@ -10,8 +10,11 @@ import java.util.Locale;
 @Component
 public class NotificationTemplateBuilder {
 
-    // TODO: 프론트 배포 후 실제 URL로 변경
-    private static final String SITE_URL = "https://finsight.com";
+    private final String siteUrl;
+
+    public NotificationTemplateBuilder(@org.springframework.beans.factory.annotation.Value("${notification.site-url}") String siteUrl) {
+        this.siteUrl = siteUrl;
+    }
 
     /**
      * 일일 알림 HTML 이메일 생성
@@ -145,7 +148,7 @@ public class NotificationTemplateBuilder {
                 </div>
             </body>
             </html>
-            """.formatted(dateStr, message, emoji, newsStatus, quizStatus, reviewStatus, SITE_URL);
+            """.formatted(dateStr, message, emoji, newsStatus, quizStatus, reviewStatus, siteUrl);
     }
 
     /**
@@ -230,6 +233,6 @@ public class NotificationTemplateBuilder {
             </body>
             </html>
             """.formatted(dateRangeStr, quizCardStyle, quizTextColor, quizCount, quizSubColor,
-                newsCardStyle, newsTextColor, newsCount, newsSubColor, message, emoji, SITE_URL);
+                newsCardStyle, newsTextColor, newsCount, newsSubColor, message, emoji, siteUrl);
     }
 }

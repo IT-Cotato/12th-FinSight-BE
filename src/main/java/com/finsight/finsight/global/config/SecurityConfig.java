@@ -47,8 +47,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 프리플라이트 통과
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // 헬스체크 열기
-                        .requestMatchers("/actuator/health").permitAll()
+                        // 헬스체크 + 메트릭 수집 열기
+                        .requestMatchers(
+                                "/actuator/health",
+                                "/actuator/prometheus"
+                        ).permitAll()
 
                         .requestMatchers(
                                 "/api/auth/**",

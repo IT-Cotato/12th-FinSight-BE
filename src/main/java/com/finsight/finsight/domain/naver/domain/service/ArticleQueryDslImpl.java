@@ -13,6 +13,7 @@ import com.finsight.finsight.domain.ai.persistence.entity.QAiTermCardEntity;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Predicate;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -68,21 +69,22 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl {
                         QAiTermCardEntity qAiTermCard = QAiTermCardEntity.aiTermCardEntity;
                         QAiArticleSummaryEntity qSummary = QAiArticleSummaryEntity.aiArticleSummaryEntity;
 
-                        // 제목에 포함되는 경우 또는 용어 카드 포함 또는 요약문 포함
-                        builder.and(naverArticleEntity.title.contains(keyword)
+                        // 제목에 포함되는 경우 또는 용어 카드 포함 또는 요약문 포함 (대소문자 무시)
+                        // summaryFull은 CLOB 타입이므로 DBMS_LOB.SUBSTR로 VARCHAR 변환 후 UPPER 적용
+                        builder.and(naverArticleEntity.title.containsIgnoreCase(keyword)
                                         .or(JPAExpressions.selectOne()
                                                         .from(qAiTermCard)
                                                         .where(
                                                                         qAiTermCard.article.eq(naverArticleEntity)
                                                                                         .and(qAiTermCard.term.displayName
-                                                                                                        .contains(keyword)))
+                                                                                                        .containsIgnoreCase(keyword)))
                                                         .exists())
                                         .or(JPAExpressions.selectOne()
                                                         .from(qSummary)
                                                         .where(qSummary.article.eq(naverArticleEntity)
-                                                                        .and(qSummary.summaryFull.contains(keyword)
-                                                                                        .or(qSummary.summary3Lines
-                                                                                                        .contains(keyword))))
+                                                                .and(qSummary.summaryFull.contains(keyword)
+                                                                        .or(qSummary.summary3Lines
+                                                                                .containsIgnoreCase(keyword))))
                                                         .exists()));
                 }
 

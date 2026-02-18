@@ -73,6 +73,19 @@ public class AiMetrics {
         holder.set(value);
     }
 
+    // ========== Article Completion Metrics ==========
+
+    /**
+     * AI 작업이 모두 완료된 article 카운터
+     * QUIZ_TERM이 성공적으로 완료되면 호출
+     */
+    public void incArticleCompleted() {
+        Counter.builder("ai_articles_completed_total")
+                .description("AI 작업이 모두 완료된 article 수")
+                .register(meterRegistry)
+                .increment();
+    }
+
     // ========== Sweeper Metrics ==========
 
     public void incSweeperEvent(String event) {

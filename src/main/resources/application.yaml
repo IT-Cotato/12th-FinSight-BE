@@ -51,7 +51,7 @@ kakao:
 
 naver:
   crawler:
-    enabled: false              # 일단 크롤링 꺼놓기
+    enabled: false           # 일단 크롤링 꺼놓기
     cron: "0 */5 * * * *"       # 5분마다
     max-pages: 1                # 각 탭 최신 1페이지까지만
     stop-after-seen-streak: 8   # 이미 저장된 기사 연속 8개면 종료
@@ -75,7 +75,7 @@ openai:
   base-url: https://api.openai.com/v1
   model: gpt-4o-mini
   timeout-ms: 20000
-  max-output-tokens: 900
+  max-output-tokens: 3000
   temperature: 0.2
 
 ai:
@@ -93,3 +93,22 @@ ai:
     cron: "0 */1 * * * *"          # 1분 주기
     stuck-threshold-minutes: 10    # RUNNING 10분 이상이면 stuck
 
+firebase:
+  adminsdk:
+    account:
+      path: ${FIREBASE_KEY_PATH}
+
+notification:
+  scheduler:
+    daily-cron: ${DAILY_NOTIFICATION_CRON:0 0 9 * * *}
+    weekly-cron: ${WEEKLY_NOTIFICATION_CRON:0 0 9 * * MON}
+    enabled: ${NOTIFICATION_SCHEDULER_ENABLED:true}
+  site-url: ${SITE_URL:https://develop-12th-fin-sight-fe.vercel.app}
+
+# 로그를 파일로 저장 설정
+logging:
+  file:
+    name: /var/log/finsight/finsight.log
+  logback:
+    rollingpolicy:
+      max-history: 7

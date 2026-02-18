@@ -21,6 +21,7 @@ import com.finsight.finsight.global.exception.AppException;
 import com.finsight.finsight.global.exception.ErrorCode;
 import com.finsight.finsight.global.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -60,6 +62,7 @@ public class AuthService {
         validateEmailFormat(email);
 
         if (userAuthRepository.existsByIdentifier(email)) {
+            log.warn("[AUTH] event_type=email_code_failed email={} reason=duplicate_email", email);
             throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
         }
 
@@ -72,6 +75,7 @@ public class AuthService {
 
         emailVerificationRepository.save(verification);
         emailService.sendVerificationEmail(email, code);
+        log.info("[AUTH] event_type=email_code_sent email={}", email);
     }
 
     /*
@@ -140,6 +144,7 @@ public class AuthService {
 
         userAuthRepository.save(userAuth);
         emailVerificationRepository.deleteByEmail(request.email());
+        log.info("[AUTH] event_type=signup_success user_id={} email={} auth_type=EMAIL", user.getUserId(), request.email());
     }
 
     /*
@@ -153,9 +158,13 @@ public class AuthService {
 
         UserAuthEntity userAuth = userAuthRepository
                 .findByIdentifierAndAuthType(request.email(), AuthType.EMAIL)
-                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> {
+                    log.warn("[AUTH] event_type=login_failed email={} reason=user_not_found", request.email());
+                    return new AuthException(AuthErrorCode.USER_NOT_FOUND);
+                });
 
         if (!passwordEncoder.matches(request.password(), userAuth.getPasswordHash())) {
+            log.warn("[AUTH] event_type=login_failed email={} reason=invalid_password", request.email());
             throw new AuthException(AuthErrorCode.INVALID_PASSWORD);
         }
 
@@ -167,6 +176,7 @@ public class AuthService {
         // 출석 체크
         recordAttendance(userAuth.getUser());
 
+        log.info("[AUTH] event_type=login_success user_id={} email={} auth_type=EMAIL", userAuth.getUser().getUserId(), request.email());
         return new TokenResponse(accessToken, refreshToken);
     }
 
@@ -176,31 +186,39 @@ public class AuthService {
      */
     public TokenResponse refresh(String refreshToken) {
         if (!jwtUtil.validateToken(refreshToken)) {
+            log.warn("[AUTH] event_type=token_refresh_failed reason=invalid_token");
             throw new AuthException(AuthErrorCode.INVALID_TOKEN);
         }
 
         if (jwtUtil.isExpired(refreshToken)) {
+            log.warn("[AUTH] event_type=token_refresh_failed reason=expired_token");
             throw new AuthException(AuthErrorCode.EXPIRED_TOKEN);
         }
 
-        String email = jwtUtil.getEmail(refreshToken);
+        String identifier = jwtUtil.getEmail(refreshToken);
 
         UserAuthEntity userAuth = userAuthRepository
-                .findByIdentifierAndAuthType(email, AuthType.EMAIL)
-                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+                .findByIdentifierAndAuthType(identifier, AuthType.EMAIL)
+                .or(() -> userAuthRepository.findByIdentifierAndAuthType(identifier, AuthType.KAKAO))
+                .orElseThrow(() -> {
+                    log.warn("[AUTH] event_type=token_refresh_failed identifier={} reason=user_not_found", identifier);
+                    return new AuthException(AuthErrorCode.USER_NOT_FOUND);
+                });
 
         if (!refreshToken.equals(userAuth.getRefreshToken())) {
+            log.warn("[AUTH] event_type=token_refresh_failed identifier={} reason=token_mismatch", identifier);
             throw new AuthException(AuthErrorCode.INVALID_TOKEN);
         }
 
-        String newAccessToken = jwtUtil.createAccessToken(email);
-        String newRefreshToken = jwtUtil.createRefreshToken(email);
+        String newAccessToken = jwtUtil.createAccessToken(identifier);
+        String newRefreshToken = jwtUtil.createRefreshToken(identifier);
 
         userAuth.updateRefreshToken(newRefreshToken, LocalDateTime.now().plusDays(30));
 
         // 출석 체크
         recordAttendance(userAuth.getUser());
 
+        log.debug("[AUTH] event_type=token_refresh_success identifier={}", identifier);
         return new TokenResponse(newAccessToken, newRefreshToken);
     }
 
@@ -208,12 +226,14 @@ public class AuthService {
     로그아웃 처리
     - DB 내 Refresh Token 제거
      */
-    public void logout(String email) {
+    public void logout(String identifier) {
         UserAuthEntity userAuth = userAuthRepository
-                .findByIdentifierAndAuthType(email, AuthType.EMAIL)
+                .findByIdentifierAndAuthType(identifier, AuthType.EMAIL)
+                .or(() -> userAuthRepository.findByIdentifierAndAuthType(identifier, AuthType.KAKAO))
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
         userAuth.clearRefreshToken();
+        log.info("[AUTH] event_type=logout user_id={} identifier={}", userAuth.getUser().getUserId(), identifier);
     }
 
     /*
@@ -231,20 +251,22 @@ public class AuthService {
                 .findByIdentifierAndAuthType(kakaoId, AuthType.KAKAO);
 
         if (existingUser.isEmpty()) {
+            log.info("[AUTH] event_type=kakao_login_new_user kakao_id={}", kakaoId);
             return KakaoLoginResponse.newUser(kakaoId);
         }
 
         UserAuthEntity userAuth = existingUser.get();
         Long userId = userAuth.getUser().getUserId();
 
-        String accessToken = jwtUtil.createAccessToken(String.valueOf(userId));
-        String refreshToken = jwtUtil.createRefreshToken(String.valueOf(userId));
+        String accessToken = jwtUtil.createAccessToken(kakaoId);
+        String refreshToken = jwtUtil.createRefreshToken(kakaoId);
 
         userAuth.updateRefreshToken(refreshToken, LocalDateTime.now().plusDays(30));
 
         // 출석 체크
         recordAttendance(userAuth.getUser());
 
+        log.info("[AUTH] event_type=login_success user_id={} auth_type=KAKAO", userId);
         return KakaoLoginResponse.of(accessToken, refreshToken);
     }
 
@@ -282,11 +304,12 @@ public class AuthService {
 
         userAuthRepository.save(userAuth);
 
-        String accessToken = jwtUtil.createAccessToken(String.valueOf(user.getUserId()));
-        String refreshToken = jwtUtil.createRefreshToken(String.valueOf(user.getUserId()));
+        String accessToken = jwtUtil.createAccessToken(kakaoId);
+        String refreshToken = jwtUtil.createRefreshToken(kakaoId);
 
         userAuth.updateRefreshToken(refreshToken, LocalDateTime.now().plusDays(30));
 
+        log.info("[AUTH] event_type=signup_success user_id={} auth_type=KAKAO", user.getUserId());
         return new TokenResponse(accessToken, refreshToken);
     }
 
@@ -343,6 +366,7 @@ public class AuthService {
 
         // 인증 기록 삭제
         emailVerificationRepository.deleteByEmail(email);
+        log.info("[AUTH] event_type=password_reset_success user_id={} email={}", userAuth.getUser().getUserId(), email);
     }
 
     // 닉네임 형식 검증 (1-10자)
