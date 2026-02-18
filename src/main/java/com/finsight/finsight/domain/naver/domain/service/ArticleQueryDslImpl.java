@@ -68,21 +68,21 @@ public class ArticleQueryDslImpl implements ArticleQueryDsl {
                         QAiTermCardEntity qAiTermCard = QAiTermCardEntity.aiTermCardEntity;
                         QAiArticleSummaryEntity qSummary = QAiArticleSummaryEntity.aiArticleSummaryEntity;
 
-                        // 제목에 포함되는 경우 또는 용어 카드 포함 또는 요약문 포함
-                        builder.and(naverArticleEntity.title.contains(keyword)
+                        // 제목에 포함되는 경우 또는 용어 카드 포함 또는 요약문 포함 (대소문자 무시)
+                        builder.and(naverArticleEntity.title.containsIgnoreCase(keyword)
                                         .or(JPAExpressions.selectOne()
                                                         .from(qAiTermCard)
                                                         .where(
                                                                         qAiTermCard.article.eq(naverArticleEntity)
                                                                                         .and(qAiTermCard.term.displayName
-                                                                                                        .contains(keyword)))
+                                                                                                        .containsIgnoreCase(keyword)))
                                                         .exists())
                                         .or(JPAExpressions.selectOne()
                                                         .from(qSummary)
                                                         .where(qSummary.article.eq(naverArticleEntity)
-                                                                        .and(qSummary.summaryFull.contains(keyword)
+                                                                        .and(qSummary.summaryFull.containsIgnoreCase(keyword)
                                                                                         .or(qSummary.summary3Lines
-                                                                                                        .contains(keyword))))
+                                                                                                        .containsIgnoreCase(keyword))))
                                                         .exists()));
                 }
 
