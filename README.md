@@ -7,6 +7,12 @@
 금융 뉴스를 크롤링하여 AI 기반 요약, 용어 설명, 인사이트, 퀴즈를 자동 생성하는 백엔드 서비스
 
 </div>
+<p align="center">
+  <img width="300" alt="1" src="https://github.com/user-attachments/assets/3c27af3d-5a5a-480e-9167-05bbf0375af0" />
+  <img width="300" alt="2" src="https://github.com/user-attachments/assets/c06e3138-5010-4609-b8b2-89142c228bba" />
+  <img width="300" alt="3" src="https://github.com/user-attachments/assets/68d3d12f-4d9f-49be-9812-699f69eeccfc" />
+</p>
+
 
 ---
 
@@ -19,6 +25,7 @@
 5. [ERD](#5-erd)
 6. [트러블슈팅](#6-트러블슈팅)
 7. [팀원 소개](#7-팀원-소개)
+8. [Git Conventions](#8-git-conventions)
 
 ---
 
@@ -143,6 +150,7 @@ PR Merge → GitHub Actions → Build JAR → SCP to EC2 → Restart App
 
 ### 4.1 전체 아키텍처
 
+<img width="1259" height="929" alt="drawio_1" src="https://github.com/user-attachments/assets/3b7ca2b5-dfaa-46e8-af1f-cc9124898a5a" />
 
 
 ### 4.2 크롤링 → AI 비동기 작업 흐름
@@ -224,6 +232,9 @@ PR Merge → GitHub Actions → Build JAR → SCP to EC2 → Restart App
 
 ## 5. ERD
 
+<p align="center">
+  <img width="700" alt="final_finsight" src="https://github.com/user-attachments/assets/ab5275ef-a540-4d38-82cb-62b8ebc45ff1" />
+</p>
 
 ---
 
@@ -235,7 +246,7 @@ PR Merge → GitHub Actions → Build JAR → SCP to EC2 → Restart App
 - **오해(1차)**: EC2 메모리 부족이라 판단 → 인스턴스 업그레이드했지만 효과 미미
 - **원인(2차)**: 서버 리전이 **Stockholm(eu-north-1)** 이라 한국에서 RTT **200ms+** 레이턴시 발생
 - **해결**: AMI로 서버 환경 그대로 복제 후 **서울(ap-northeast-2)** 로 이전
-- **결과**: RTT **200~300ms → 20~40ms**, 체감 속도 **5~10배 개선**
+- **결과**: RTT **200 ~ 300ms → 20 ~ 40ms**, 체감 속도 **5 ~ 10배 개선**
 
 
 ### 2. AI 즉시 생성 지연/불안정 해결: DB Queue 비동기 처리 + 메트릭 모니터링
@@ -263,7 +274,7 @@ PR Merge → GitHub Actions → Build JAR → SCP to EC2 → Restart App
 
 ---
 
-## Git Conventions
+## 8. Git Conventions
 
 ### 브랜치 전략
 
