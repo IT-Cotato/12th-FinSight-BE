@@ -1,6 +1,13 @@
 # Metrics & Monitoring
 
 FinSight 백엔드의 메트릭 수집 및 모니터링 시스템 문서입니다.
+<br/>
+
+<p align="center">
+  <img width="600" alt="image1" src="https://github.com/user-attachments/assets/0d18396e-01d4-41bb-b435-9642d64d2e31" />
+  <img width="300" alt="IMG_0509" src="https://github.com/user-attachments/assets/131b28c3-d7f3-410a-a8ca-17c9d804eee3" />
+</p>
+
 
 ---
 
