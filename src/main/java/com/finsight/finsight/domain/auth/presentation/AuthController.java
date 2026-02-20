@@ -45,9 +45,10 @@ public class AuthController {
 
     @PostMapping("/signup")
     @Operation(summary = "회원가입")
-    public DataResponse<Void> signup(@Valid @RequestBody SignupRequest request) {
+    public DataResponse<TokenResponse> signup(@Valid @RequestBody SignupRequest request) {
         authService.signup(request);
-        return DataResponse.ok();
+        TokenResponse response = authService.login(new LoginRequest(request.email(), request.password()));
+        return DataResponse.from(response);
     }
 
     @PostMapping("/login")
